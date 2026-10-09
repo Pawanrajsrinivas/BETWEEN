@@ -772,3 +772,137 @@ body{overflow-x:hidden}.home{min-height:100vh;position:relative;padding:28px 5vw
   }
 }
 
+
+/* BETWEEN — final mobile alignment fix */
+@media (max-width: 850px) {
+  .game-page {
+    width: 100%;
+    min-width: 0;
+    padding: 20px 16px 32px;
+  }
+
+  .game-top {
+    width: 100%;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .game-top .wordmark {
+    font-size: 14px;
+    letter-spacing: 0.22em;
+  }
+
+  .game-room {
+    max-width: 55%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    text-align: right;
+    font-size: 8px;
+    line-height: 1.6;
+  }
+
+ .game-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  width: 100%;
+  max-width: 560px;
+  gap: 16px;
+  margin: 24px auto 0 !important;
+}
+
+ 
+  .game-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    text-align: center;
+  }
+
+  .turn-label {
+    margin: 0 0 24px;
+  }
+
+  .question-card {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 38px 22px !important;
+  }
+
+  .question-text {
+    font-size: clamp(28px, 7.5vw, 36px);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .question-card .question-kind {
+    margin-bottom: 26px !important;
+  }
+
+  .question-card .question-actions {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 34px !important;
+  }
+
+  .question-card .question-actions button {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .game-layout > .chat {
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 16px;
+  }
+
+  .messages {
+    min-height: 0;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .chat-form {
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  .chat-form input {
+    min-width: 0;
+    padding: 15px 12px;
+  }
+
+  .chat-form button {
+    flex: 0 0 52px;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-page {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .question-card {
+    padding: 32px 16px !important;
+  }
+
+  .question-text {
+    font-size: 27px;
+  }
+
+  .game-layout {
+    gap: 22px;
+  }
+}
+
+
+
