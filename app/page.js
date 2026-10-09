@@ -1334,35 +1334,24 @@ function Game({ roomCode }) {
 
 
 
-  useEffect(() => {
+  
+useEffect(() => {
+  const stored = localStorage.getItem("between_player");
 
+  if (stored) {
+    try {
+      const savedPlayer = JSON.parse(stored);
 
-
-    const stored =
-
-      localStorage.getItem("between_player");
-
-
-
-    if (stored) {
-
-      try {
-
-        setPlayer(JSON.parse(stored));
-
-      } catch {
-
-        console.log("Could not read player data.");
-
-      }
-
-    }
-
-
-
-  }, []);
-
-
+      if (savedPlayer.room && savedPlayer.role) {
+        setPlayer(savedPlayer);
+        setRoom(savedPlayer.room);
+        setScreen("lobby");
+      }
+    } catch {
+      console.log("Could not read player data.");
+    }
+  }
+}, []);
 
 
 
