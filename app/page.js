@@ -2,22 +2,54 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ArtDefs,
+  Icon,
+  Decor,
+  Chain,
+  Rose,
+  Heart,
+  Snake,
+  Cards,
+  Hourglass,
+  LipsArt,
+  RoseAvatar,
+} from "./Art";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 );
 
+/* [number, database value, short description, icon] — the database values
+   (PLAYFUL, PERSONAL…) are what the questions table filters on, so they stay. */
 const MODES = [
-  ["01", "PLAYFUL", "Easy beginnings"],
-  ["02", "PERSONAL", "Get to know each other"],
-  ["03", "FLIRTY", "A little closer"],
-  ["04", "WILD", "No backing out"],
-  ["05", "AFTER DARK", "18+ only"],
+  ["01", "PLAYFUL", "Playful & light", "petal"],
+  ["02", "PERSONAL", "Honest & close", "sparkle"],
+  ["03", "FLIRTY", "Bold & flirty", "lips"],
+  ["04", "WILD", "No backing out", "flame"],
+  ["05", "AFTER DARK", "18+ only", "moon"],
 ];
 
 function makeRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function titleCase(text) {
+  return text
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+}
+
+function formatTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function Logo() {
+  return <div className="logo">BETWEEN</div>;
 }
 
 /* =========================
@@ -31,6 +63,8 @@ export default function Home() {
   const [room, setRoom] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showAgeGate, setShowAgeGate] = useState(false);
+  const [ageVerified, setAgeVerified] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -54,6 +88,16 @@ export default function Home() {
   function goTo(next) {
     setError("");
     setScreen(next);
+  }
+
+  /* AFTER DARK always asks for 18+ confirmation first */
+  function selectMode(title) {
+    if (title === "AFTER DARK" && !ageVerified) {
+      setShowAgeGate(true);
+      return;
+    }
+
+    setMode(title);
   }
 
   async function createRoom() {
@@ -158,78 +202,32 @@ export default function Home() {
     setScreen("lobby");
   }
 
-  const modeInfo = MODES.find((item) => item[1] === mode);
-
   return (
     <>
       <div className="grain" aria-hidden="true" />
+      <ArtDefs />
 
       {screen === "home" && (
         <HomeScreen
-          mode={mode}
-          setMode={setMode}
           onCreate={() => goTo("create")}
           onJoin={() => goTo("join")}
         />
       )}
 
-      {screen === "create" && (
+      {(screen === "create" || screen === "join") && (
         <FormScreen
-          title={
-            <>
-              Create a <em>room.</em>
-            </>
-          }
-          lede="Pick a name and an energy. You'll get a code to share with one person."
-          button="CREATE ROOM"
-          busyLabel="CREATING"
-          busy={busy}
-          error={error}
-          name={name}
-          setName={setName}
-          onBack={() => goTo("home")}
-          onSubmit={createRoom}
-          extra={
-            <div className="field">
-              <label htmlFor="intensity">Intensity</label>
-
-              <select
-                id="intensity"
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-              >
-                {MODES.map((item) => (
-                  <option key={item[1]} value={item[1]}>
-                    {item[1]}
-                  </option>
-                ))}
-              </select>
-
-              {modeInfo && <span className="hint">{modeInfo[2]}</span>}
-            </div>
-          }
-        />
-      )}
-
-      {screen === "join" && (
-        <FormScreen
-          title={
-            <>
-              Join <em>them.</em>
-            </>
-          }
-          lede="Enter your name and the six-character code you were given."
-          button="JOIN ROOM"
-          busyLabel="JOINING"
+          join={screen === "join"}
           busy={busy}
           error={error}
           name={name}
           setName={setName}
           room={room}
           setRoom={setRoom}
+          mode={mode}
+          onSelectMode={selectMode}
+          onSwitch={goTo}
           onBack={() => goTo("home")}
-          onSubmit={joinRoom}
-          join
+          onSubmit={screen === "join" ? joinRoom : createRoom}
         />
       )}
 
@@ -238,7 +236,70 @@ export default function Home() {
       )}
 
       {screen === "game" && <Game roomCode={room} />}
+
+      {showAgeGate && (
+        <AgeGate
+          onConfirm={() => {
+            setAgeVerified(true);
+            setMode("AFTER DARK");
+            setShowAgeGate(false);
+          }}
+          onDecline={() => setShowAgeGate(false)}
+        />
+      )}
     </>
+  );
+}
+
+/* =========================
+   AGE CONFIRMATION
+========================= */
+
+function AgeGate({ onConfirm, onDecline }) {
+  const confirmRef = useRef(null);
+
+  useEffect(() => {
+    confirmRef.current?.focus();
+
+    function onKey(e) {
+      if (e.key === "Escape") onDecline();
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onDecline]);
+
+  return (
+    <div className="age-overlay">
+      <div
+        className="age-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="age-title"
+      >
+        <Hourglass className="age-hourglass" />
+
+        <h2 className="display" id="age-title">
+          Are you 18
+          <br />
+          or older?
+        </h2>
+
+        <p className="lede">
+          This is a private and mature experience meant only for adults.
+        </p>
+
+        <div className="age-actions">
+          <button ref={confirmRef} className="primary" onClick={onConfirm}>
+            Yes, I am 18+
+          </button>
+
+          <button className="secondary outline" onClick={onDecline}>
+            No, I am under 18
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -246,165 +307,162 @@ export default function Home() {
    HOME
 ========================= */
 
-function HomeScreen({ mode, setMode, onCreate, onJoin }) {
-  const [showAgeGate, setShowAgeGate] = useState(false);
-  const [ageVerified, setAgeVerified] = useState(false);
-  const confirmRef = useRef(null);
-
-  function selectMode(title) {
-    if (title === "AFTER DARK" && !ageVerified) {
-      setShowAgeGate(true);
-      return;
-    }
-
-    setMode(title);
-  }
-
-  useEffect(() => {
-    if (!showAgeGate) return;
-
-    confirmRef.current?.focus();
-
-    function onKey(e) {
-      if (e.key === "Escape") setShowAgeGate(false);
-    }
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showAgeGate]);
+function HomeScreen({ onCreate, onJoin }) {
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <>
-      <main className="screen home">
-        <header className="topbar">
-          <div className="wordmark">BETWEEN</div>
-          <div className="topbar-note">A game for two</div>
-        </header>
+    <main className="screen home">
+      <Decor variant="home" />
 
-        <section className="hero">
-          <p className="eyebrow">Two people · One private space</p>
+      <header className="topbar">
+        <Logo />
+
+        <nav
+          className={`nav-links ${menuOpen ? "open" : ""}`}
+          aria-label="Main"
+        >
+          <a href="#top" onClick={() => setMenuOpen(false)}>
+            Home
+          </a>
+          <a href="#about" onClick={() => setMenuOpen(false)}>
+            About
+          </a>
+          <a href="#how" onClick={() => setMenuOpen(false)}>
+            How it works
+          </a>
+          <button
+            type="button"
+            className="nav-cta"
+            onClick={() => {
+              setMenuOpen(false);
+              onCreate();
+            }}
+          >
+            Start Playing
+          </button>
+        </nav>
+
+        <button
+          type="button"
+          className="icon-btn menu-btn"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <Icon name={menuOpen ? "close" : "menu"} />
+        </button>
+      </header>
+
+      <section className="hero" id="top">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            A private truth or dare experience
+            <Icon name="sparkle" className="eyebrow-spark" />
+          </p>
 
           <h1 className="display">
-            What happens
+            Two people.
             <br />
-            <em>between</em> you.
+            <em>No limits.</em>
           </h1>
 
           <p className="lede">
-            Truths. Dares. Questions you wouldn&apos;t normally ask. A private
-            game designed for two people.
+            A private truth or dare experience
+            <br />
+            for deeper, wilder connections.
           </p>
 
           <div className="cta-row">
             <button className="primary" onClick={onCreate}>
-              Create room
+              Create a Room
               <span aria-hidden="true">→</span>
             </button>
 
-            <button className="secondary" onClick={onJoin}>
-              Join room
+            <button className="secondary outline" onClick={onJoin}>
+              Join a Room
             </button>
           </div>
-
-          <p className="assurance">Private · Two players</p>
-        </section>
-
-        <section className="moods-section" aria-labelledby="moods-label">
-          <p className="label" id="moods-label">
-            Choose your energy
-          </p>
-
-          <div className="moods">
-            {MODES.map(([num, title, description]) => (
-              <button
-                key={title}
-                className={`mood ${mode === title ? "selected" : ""}`}
-                onClick={() => selectMode(title)}
-                aria-pressed={mode === title}
-              >
-                <span className="mood-num">{num}</span>
-                <strong>{title}</strong>
-                <small>{description}</small>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <footer className="foot">
-          <span>BETWEEN</span>
-          <span>Keep it between you.</span>
-        </footer>
-      </main>
-
-      {showAgeGate && (
-        <div className="age-overlay">
-          <div
-            className="age-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="age-title"
-          >
-            <p className="eyebrow">BETWEEN · After Dark</p>
-
-            <h2 className="display" id="age-title">
-              Are you
-              <br />
-              <em>18 or older?</em>
-            </h2>
-
-            <p className="lede">
-              AFTER DARK is intended only for adults. By continuing, you
-              confirm that you are at least 18 years old.
-            </p>
-
-            <div className="age-actions">
-              <button
-                ref={confirmRef}
-                className="primary"
-                onClick={() => {
-                  setAgeVerified(true);
-                  setMode("AFTER DARK");
-                  setShowAgeGate(false);
-                }}
-              >
-                I&apos;m 18+ · Continue
-              </button>
-
-              <button
-                className="secondary"
-                onClick={() => {
-                  setShowAgeGate(false);
-                }}
-              >
-                Go back
-              </button>
-            </div>
-          </div>
         </div>
-      )}
-    </>
+
+        <div className="hero-art" aria-hidden="true">
+          <Snake className="art-snake" />
+          <Heart className="art-heart" />
+          <Rose className="art-rose" />
+          <Cards className="art-cards" />
+          <Icon name="sparkle" className="art-spark s1" />
+          <Icon name="sparkle" className="art-spark s2" />
+          <Icon name="sparkle" className="art-spark s3" />
+        </div>
+      </section>
+
+      <section className="how" aria-labelledby="how-title">
+        <div className="how-intro" id="about">
+          <p className="eyebrow">About</p>
+          <h2 className="display" id="how-title">
+            Just the two of you.
+          </h2>
+          <p className="lede">
+            BETWEEN is a private game for exactly two people. Rooms hold two
+            players, questions match the energy you choose, and your chat stays
+            in the room.
+          </p>
+        </div>
+
+        <ol className="steps" id="how">
+          <li>
+            <span className="step-icon">
+              <Icon name="heart" />
+            </span>
+            <strong>Create a room</strong>
+            <span>Pick your energy and get a six-character code.</span>
+          </li>
+          <li>
+            <span className="step-icon">
+              <Icon name="lips" />
+            </span>
+            <strong>Share the code</strong>
+            <span>One partner joins. No one else can.</span>
+          </li>
+          <li>
+            <span className="step-icon">
+              <Icon name="flame" />
+            </span>
+            <strong>Take turns</strong>
+            <span>Truth or dare, with a private chat alongside.</span>
+          </li>
+        </ol>
+      </section>
+
+      <footer className="foot">
+        <span>Intimate</span>
+        <i aria-hidden="true" />
+        <span>Private</span>
+        <i aria-hidden="true" />
+        <span>Real</span>
+        <i aria-hidden="true" />
+        <span>Just the Two of You</span>
+      </footer>
+    </main>
   );
 }
 
 /* =========================
-   FORM
+   CREATE / JOIN FORM
 ========================= */
 
 function FormScreen({
-  title,
-  lede,
-  button,
-  busyLabel,
+  join,
   busy,
   error,
   name,
   setName,
   room,
   setRoom,
+  mode,
+  onSelectMode,
+  onSwitch,
   onBack,
   onSubmit,
-  join,
-  extra,
 }) {
   const disabled = !name.trim() || (join && !room.trim()) || busy;
 
@@ -415,51 +473,104 @@ function FormScreen({
 
   return (
     <main className="screen form-screen">
-      <button className="text-button" onClick={onBack} type="button">
-        ← Back
-      </button>
+      <Decor variant="form" chain />
 
-      <form className="form-card" onSubmit={handleSubmit} noValidate>
-        <p className="eyebrow">BETWEEN</p>
+      <header className="topbar">
+        <button
+          className="icon-btn"
+          onClick={onBack}
+          type="button"
+          aria-label="Back to home"
+        >
+          <Icon name="back" />
+        </button>
 
-        <h1 className="display">{title}</h1>
+        <Logo />
 
-        <p className="lede">{lede}</p>
+        <span className="topbar-spacer" aria-hidden="true" />
+      </header>
 
-        <div className="field">
-          <label htmlFor="player-name">Your name</label>
-          <input
-            id="player-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="What should they call you?"
-            maxLength={30}
-            autoComplete="nickname"
-            autoCapitalize="words"
-            enterKeyHint={join ? "next" : "go"}
-          />
+      <form className="panel form-card" onSubmit={handleSubmit} noValidate>
+        <div className="segmented" role="tablist" aria-label="Room action">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!join}
+            className={!join ? "on" : ""}
+            onClick={() => onSwitch("create")}
+          >
+            Create Room
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={join}
+            className={join ? "on" : ""}
+            onClick={() => onSwitch("join")}
+          >
+            Join Room
+          </button>
         </div>
 
-        {join && (
-          <div className="field">
-            <label htmlFor="room-code">Room code</label>
+        <div className="field">
+          <label htmlFor="player-name">Your Nickname</label>
+          <div className="input-wrap">
+            <Icon name="user" />
             <input
-              id="room-code"
-              className="code-input"
-              value={room}
-              onChange={(e) => setRoom(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              maxLength={6}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              enterKeyHint="go"
-              aria-invalid={error ? "true" : undefined}
+              id="player-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Baby, Angel, Trouble"
+              maxLength={30}
+              autoComplete="nickname"
+              autoCapitalize="words"
+              enterKeyHint={join ? "next" : "go"}
             />
           </div>
-        )}
+        </div>
 
-        {extra}
+        {join ? (
+          <div className="field">
+            <label htmlFor="room-code">Room Code</label>
+            <div className="input-wrap">
+              <Icon name="sparkle" />
+              <input
+                id="room-code"
+                className="code-input"
+                value={room}
+                onChange={(e) => setRoom(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                maxLength={6}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                enterKeyHint="go"
+                aria-invalid={error ? "true" : undefined}
+              />
+            </div>
+          </div>
+        ) : (
+          <fieldset className="field intensity">
+            <legend>Select Intensity</legend>
+
+            <div className="mode-grid" role="radiogroup" aria-label="Intensity">
+              {MODES.map(([num, title, description, icon]) => (
+                <button
+                  key={title}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === title}
+                  className={`mode-card ${mode === title ? "selected" : ""}`}
+                  onClick={() => onSelectMode(title)}
+                >
+                  <Icon name={icon} />
+                  <strong>{titleCase(title)}</strong>
+                  <small>{description}</small>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         {error && (
           <p className="form-error" role="alert">
@@ -473,12 +584,9 @@ function FormScreen({
           disabled={disabled}
           aria-busy={busy ? "true" : undefined}
         >
-          {busy ? busyLabel : button}
+          {busy ? (join ? "Joining" : "Creating") : join ? "Join Room" : "Create My Room"}
+          {!busy && <span aria-hidden="true">→</span>}
         </button>
-
-        <span className="privacy">
-          Your room is private and designed for two people.
-        </span>
       </form>
     </main>
   );
@@ -494,6 +602,16 @@ function Lobby({ room, onGame }) {
   const [copied, setCopied] = useState(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("between_player") || "null");
+      if (stored && stored.room === room) setMe(stored.role);
+    } catch {
+      /* no saved player — labels simply omit "You" */
+    }
+  }, [room]);
 
   useEffect(() => {
     let channel;
@@ -571,22 +689,19 @@ function Lobby({ room, onGame }) {
     }
   }
 
-  function copyInvite() {
-    copyText(`${window.location.origin}/?room=${room}`, "link");
-  }
-
-  function copyCode() {
-    copyText(room, "code");
+  function leaveRoom() {
+    window.location.href = "/";
   }
 
   if (!loaded) {
     return (
       <main className="screen">
+        <Decor variant="lobby" />
         <div className="state-card">
+          <Hourglass className="state-hourglass" />
           <p className="eyebrow" role="status">
             Loading room
           </p>
-          <div className="loading-line" />
         </div>
       </main>
     );
@@ -595,6 +710,7 @@ function Lobby({ room, onGame }) {
   if (!roomData) {
     return (
       <main className="screen">
+        <Decor variant="lobby" />
         <div className="state-card">
           <p className="eyebrow">Room {room}</p>
           <h1 className="display">
@@ -603,7 +719,7 @@ function Lobby({ room, onGame }) {
           <p className="lede">
             This room may have expired, or the code may be wrong.
           </p>
-          <a className="secondary" href="/">
+          <a className="secondary outline" href="/">
             Back to start
           </a>
         </div>
@@ -615,66 +731,86 @@ function Lobby({ room, onGame }) {
 
   return (
     <main className="screen lobby">
+      <Decor variant="lobby" />
+
       <header className="topbar">
-        <div className="wordmark">BETWEEN</div>
-        <div className="topbar-note">{roomData.intensity}</div>
+        <Logo />
+
+        <button type="button" className="leave-btn" onClick={leaveRoom}>
+          <Icon name="leave" />
+          Leave Room
+        </button>
       </header>
 
       <div className="lobby-body">
-        <p className="eyebrow">{hasGuest ? "Both players are in" : "Room ready"}</p>
-
         <h1 className="display">
-          {hasGuest ? (
-            <>
-              Ready when
-              <br />
-              <em>you are.</em>
-            </>
-          ) : (
-            <>
-              Waiting for
-              <br />
-              <em>two.</em>
-            </>
-          )}
+          {hasGuest ? "Both Players Are In" : "Your Room is Ready"}
         </h1>
 
-        <button
-          type="button"
-          className={`code-block ${copied === "code" ? "done" : ""}`}
-          onClick={copyCode}
-          aria-label={`Room code ${room.split("").join(" ")}. Tap to copy.`}
-        >
-          <span className="label">Room code</span>
-          <strong>{room}</strong>
-          <span className="copy-hint" aria-live="polite">
-            {copied === "code" ? "Copied" : "Tap to copy"}
-          </span>
-        </button>
+        <p className="lede">
+          {hasGuest
+            ? "Start whenever you're both ready."
+            : "Share this code with your partner"}
+        </p>
 
-        <div className="seats">
-          <div className="seat">
-            <div className="seat-mark" aria-hidden="true">
-              {roomData.host_name.trim().charAt(0).toUpperCase()}
-            </div>
-            <div className="seat-text">
-              <span className="seat-name">{roomData.host_name}</span>
-              <span className="seat-role">Host</span>
-            </div>
-            <span className="seat-state">Joined</span>
+        <div className="code-card">
+          <div className="code-chars" aria-label={`Room code ${room.split("").join(" ")}`}>
+            {room.split("").map((char, i) => (
+              <span key={i}>{char}</span>
+            ))}
           </div>
 
-          <div className={`seat ${hasGuest ? "" : "empty"}`}>
-            <div className="seat-mark" aria-hidden="true">
-              {hasGuest ? roomData.guest_name.trim().charAt(0).toUpperCase() : "?"}
-            </div>
-            <div className="seat-text">
-              <span className="seat-name">
-                {hasGuest ? roomData.guest_name : "Waiting for them…"}
+          <button
+            type="button"
+            className={`copy-btn ${copied === "code" ? "done" : ""}`}
+            onClick={() => copyText(room, "code")}
+            aria-label={copied === "code" ? "Room code copied" : "Copy room code"}
+          >
+            <Icon name={copied === "code" ? "check" : "copy"} />
+          </button>
+        </div>
+
+        <div className="duo">
+          <div className="duo-player">
+            <RoseAvatar />
+            <strong>{roomData.host_name}</strong>
+            <span>{me === "host" ? "You" : "Player 1"}</span>
+            <em className="badge">Host</em>
+          </div>
+
+          <div className="pulse-line" aria-hidden="true">
+            <i />
+            <Icon name="heart" />
+            <i />
+          </div>
+
+          <div className={`duo-player ${hasGuest ? "" : "empty"}`}>
+            {hasGuest ? (
+              <RoseAvatar />
+            ) : (
+              <span className="empty-avatar" aria-hidden="true">
+                ?
               </span>
-              <span className="seat-role">Guest</span>
-            </div>
-            <span className="seat-state">{hasGuest ? "Joined" : "Waiting"}</span>
+            )}
+            <strong>{hasGuest ? roomData.guest_name : "Waiting for Player 2…"}</strong>
+            {hasGuest && <span>{me === "guest" ? "You" : "Player 2"}</span>}
+            {hasGuest && <em className="badge ghost">Guest</em>}
+          </div>
+        </div>
+
+        <div className="status-panel" role="status">
+          <Hourglass className="status-hourglass" />
+          <div>
+            <strong>
+              {hasGuest
+                ? "Your partner has joined"
+                : "Waiting for your partner to join…"}
+            </strong>
+            <span>
+              {hasGuest
+                ? "Both players are in the room."
+                : "This won't take long. Get ready."}
+            </span>
           </div>
         </div>
 
@@ -685,8 +821,14 @@ function Lobby({ room, onGame }) {
         )}
 
         <div className="lobby-actions">
-          <button className="secondary" onClick={copyInvite} type="button">
-            {copied === "link" ? "Copied" : "Copy invite link"}
+          <button
+            className="secondary outline"
+            onClick={() =>
+              copyText(`${window.location.origin}/?room=${room}`, "link")
+            }
+            type="button"
+          >
+            {copied === "link" ? "Link copied" : "Copy invite link"}
           </button>
 
           {hasGuest && (
@@ -702,8 +844,6 @@ function Lobby({ room, onGame }) {
             </button>
           )}
         </div>
-
-        <p className="tag lobby-meta">{roomData.intensity} · Two players</p>
       </div>
     </main>
   );
@@ -992,9 +1132,14 @@ function Game({ roomCode }) {
     }
   }
 
+  function leaveRoom() {
+    window.location.href = "/";
+  }
+
   if (loadError) {
     return (
       <main className="screen game">
+        <Decor variant="game" />
         <div className="state-card">
           <p className="eyebrow">Room {roomCode}</p>
           <h1 className="display">
@@ -1003,7 +1148,7 @@ function Game({ roomCode }) {
           <p className="lede">
             This room may have expired, or the link may be wrong.
           </p>
-          <a className="secondary" href="/">
+          <a className="secondary outline" href="/">
             Back to start
           </a>
         </div>
@@ -1014,16 +1159,12 @@ function Game({ roomCode }) {
   if (loading || !roomData) {
     return (
       <main className="screen game">
+        <Decor variant="game" />
         <div className="state-card">
+          <Hourglass className="state-hourglass" />
           <p className="eyebrow" role="status">
-            BETWEEN
+            Entering your space
           </p>
-          <h1 className="display">
-            Entering your
-            <br />
-            <em>space.</em>
-          </h1>
-          <div className="loading-line" />
         </div>
       </main>
     );
@@ -1034,161 +1175,145 @@ function Game({ roomCode }) {
   const otherPlayer =
     myPlayerNumber === 1 ? roomData.guest_name : roomData.host_name;
 
-  const players = [
-    { n: 1, role: "Host", name: roomData.host_name },
-    { n: 2, role: "Guest", name: roomData.guest_name || "Waiting…" },
-  ];
+  const turnTitle = isMyTurn ? "Your Turn" : `${otherPlayer || "Their"}'s Turn`;
+
+  let turnSub;
+  if (isMyTurn) {
+    turnSub = question ? "Take your time, then pass the turn" : "Choose your move";
+  } else {
+    turnSub = question
+      ? `${otherPlayer || "They"} drew a ${question.kind.toLowerCase()}`
+      : `${otherPlayer || "They"} is choosing a truth or dare`;
+  }
+
+  const canPick = isMyTurn && !question;
 
   return (
     <main className="screen game">
+      <Decor variant="game" />
+
       <header className="topbar">
-        <div className="wordmark">BETWEEN</div>
+        <Logo />
 
         <div className="room-tag">
-          <span className="mode-name">{roomData.intensity}</span>
+          <span className="mode-name">{titleCase(roomData.intensity)}</span>
           <span className="sep" aria-hidden="true">
             ·
           </span>
           <span>{roomCode}</span>
         </div>
+
+        <button type="button" className="leave-btn" onClick={leaveRoom}>
+          <Icon name="leave" />
+          <span>Leave Room</span>
+        </button>
       </header>
 
       <div className="game-layout">
         {/* GAME */}
         <section className="stage" aria-label="Game">
-          <div className="players-strip">
-            {players.map((p) => (
-              <div
-                key={p.n}
-                className={`pl ${roomData.current_player === p.n ? "active" : ""}`}
-              >
-                <span className="pl-role">
-                  {p.role}
-                  {p.n === myPlayerNumber ? " · You" : ""}
-                </span>
-                <span className="pl-name">{p.name}</span>
-              </div>
-            ))}
-          </div>
+          <LipsArt className="stage-lips" />
+          <Chain className="stage-chain" />
 
           <div
-            className={`turn-label turn-reveal ${isMyTurn ? "mine" : ""}`}
+            className="turn-head turn-reveal"
             key={`${roomData.current_player}-${roomData.current_question_id || "choice"}`}
             role="status"
           >
-            <span>
-              {isMyTurn
-                ? "Your turn"
-                : `${otherPlayer || "Them"}'s turn`}
+            {isMyTurn && (
+              <span className="turn-crown">
+                <Icon name="crown" />
+                Your Turn
+              </span>
+            )}
+            <h1 className="display">{turnTitle}</h1>
+            <p>{turnSub}</p>
+          </div>
+
+          <div className="pick-row" role="group" aria-label="Truth or dare">
+            <button
+              type="button"
+              className={`pick ${question?.kind === "TRUTH" ? "active" : ""}`}
+              disabled={!canPick || busy}
+              onClick={() => run(() => chooseQuestion("TRUTH"))}
+            >
+              <Icon name="heart" />
+              Truth
+            </button>
+
+            <button
+              type="button"
+              className={`pick ${question?.kind === "DARE" ? "active" : ""}`}
+              disabled={!canPick || busy}
+              onClick={() => run(() => chooseQuestion("DARE"))}
+            >
+              <Icon name="flame" />
+              Dare
+            </button>
+          </div>
+
+          {notice && (
+            <p className="notice" role="alert">
+              {notice}
+            </p>
+          )}
+
+          <div
+            className={`question-card ${question ? "question-reveal" : "idle"}`}
+            key={question ? question.id : "idle"}
+          >
+            <Icon name="sparkle" className="qc-ornament" />
+
+            {question ? (
+              <>
+                <div className="question-kind">{question.kind}</div>
+                <p className="question-text">{question.body}</p>
+              </>
+            ) : (
+              <p className="question-text idle-text">
+                {isMyTurn
+                  ? "Pick truth or dare, and your question appears here."
+                  : "Your next question is on its way…"}
+              </p>
+            )}
+
+            <span className="qc-dice" aria-hidden="true">
+              <Icon name="dice" />
             </span>
           </div>
 
-          {!question && isMyTurn && (
-            <div className="card choice-card">
-              <p className="eyebrow">Choose your move</p>
+          <div className="turn-actions">
+            {isMyTurn && question && (
+              <button
+                type="button"
+                className="skip-link"
+                disabled={busy}
+                onClick={() => run(skipQuestion)}
+              >
+                Skip this question
+              </button>
+            )}
 
-              <h1 className="display">
-                Truth or
-                <br />
-                <em>dare?</em>
-              </h1>
-
-              <div className="pick-row">
-                <button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => run(() => chooseQuestion("TRUTH"))}
-                >
-                  Truth
-                  <small>Answer honestly</small>
-                </button>
-
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => run(() => chooseQuestion("DARE"))}
-                >
-                  Dare
-                  <small>Do it</small>
-                </button>
-              </div>
-
-              {notice && (
-                <p className="notice" role="alert">
-                  {notice}
-                </p>
-              )}
-            </div>
-          )}
-
-          {!question && !isMyTurn && (
-            <div className="card choice-card">
-              <p className="eyebrow">Their move</p>
-
-              <h1 className="display">
-                Your turn
-                <br />
-                <em>comes next.</em>
-              </h1>
-
-              <p className="lede">
-                {otherPlayer || "The other player"} is choosing a truth or dare.
-              </p>
-
-              <span className="waiting-dots" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          )}
-
-          {question && (
-            <div className="card question-card question-reveal" key={question.id}>
-              <div className="question-kind">{question.kind}</div>
-
-              <p className="question-text">{question.body}</p>
-
-              {isMyTurn && (
-                <div className="question-actions">
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => run(skipQuestion)}
-                  >
-                    Skip
-                  </button>
-
-                  <button
-                    className="primary"
-                    disabled={busy}
-                    onClick={() => run(nextTurn)}
-                  >
-                    Done · Next turn
-                    <span aria-hidden="true">→</span>
-                  </button>
-                </div>
-              )}
-
-              {isMyTurn && notice && (
-                <p className="notice" role="alert">
-                  {notice}
-                </p>
-              )}
-
-              {!isMyTurn && (
-                <p className="waiting-text">
-                  Waiting for {otherPlayer || "them"}…
-                </p>
-              )}
-            </div>
-          )}
+            <button
+              type="button"
+              className="primary full"
+              disabled={!isMyTurn || !question || busy}
+              aria-busy={busy && isMyTurn && question ? "true" : undefined}
+              onClick={() => run(nextTurn)}
+            >
+              Next Turn
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
         </section>
 
         {/* CHAT */}
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
-            <span className="chat-title">Private chat</span>
+            <span className="chat-title">
+              <Icon name="chat" />
+              Chat
+            </span>
             <span className="chat-people">
               {roomData.host_name}
               {roomData.guest_name ? ` & ${roomData.guest_name}` : ""}
@@ -1198,6 +1323,7 @@ function Game({ roomCode }) {
           <div className="messages" ref={messagesRef} role="log" aria-live="polite">
             {messages.length === 0 && (
               <div className="empty-chat">
+                <RoseAvatar />
                 <strong>Say something.</strong>
                 Messages here stay between the two of you.
               </div>
@@ -1223,11 +1349,19 @@ function Game({ roomCode }) {
                   key={message.id}
                   className={`message ${mine ? "mine" : ""}`}
                 >
-                  <span className="message-name">
-                    {mine ? "You" : message.nickname}
-                  </span>
+                  {!mine && <RoseAvatar className="small" />}
 
-                  <div className="message-body">{message.body}</div>
+                  <div className="message-col">
+                    {!mine && (
+                      <span className="message-name">{message.nickname}</span>
+                    )}
+
+                    <div className="message-body">{message.body}</div>
+
+                    <span className="message-time">
+                      {formatTime(message.created_at)}
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -1237,7 +1371,7 @@ function Game({ roomCode }) {
             <input
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
-              placeholder="Say something…"
+              placeholder="Type a message…"
               maxLength={500}
               autoComplete="off"
               enterKeyHint="send"
@@ -1249,7 +1383,7 @@ function Game({ roomCode }) {
               disabled={!chatText.trim()}
               aria-label="Send message"
             >
-              →
+              <Icon name="send" />
             </button>
           </form>
         </aside>
