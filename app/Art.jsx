@@ -336,22 +336,73 @@ export function ArtDefs() {
         >
           <path d="M8 46l-2-26 14 12 12-20 12 20 14-12-2 26zM10 54h44" />
         </symbol>
+        <symbol
+          id="i-offline"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="18" y="8" width="28" height="48" rx="6" />
+          <circle cx="32" cy="48" r="2" fill="currentColor" />
+          <path d="M26 14h12" />
+        </symbol>
+        <symbol
+          id="i-settings"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="32" cy="32" r="10" />
+          <path d="M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6" />
+        </symbol>
       </defs>
     </svg>
   );
 }
 
 /* Small inline icon that picks a symbol from <ArtDefs /> */
-export function Icon({ name, className = "" }) {
+export function Icon({ name, className = "", size }) {
+  const style = size ? { width: size, height: size } : undefined;
   return (
     <svg
       className={`icon ${className}`}
+      style={style}
       viewBox="0 0 64 64"
       aria-hidden="true"
       focusable="false"
     >
       <use href={`#i-${name}`} />
     </svg>
+  );
+}
+
+export function Crest({ size = 32, className = "" }) {
+  return (
+    <div
+      className={`crest-mark ${className}`}
+      style={{ width: size, height: size, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+      aria-hidden="true"
+    >
+      <Rose className="crest-rose" />
+    </div>
+  );
+}
+
+export function Hairline({ style, className = "" }) {
+  return <div className={`hairline-divider ${className}`} style={style} aria-hidden="true" />;
+}
+
+export function BackLink({ onClick, label = "Back" }) {
+  return (
+    <button type="button" className="icon-btn back-link-btn" onClick={onClick} aria-label={label}>
+      <Icon name="back" />
+    </button>
   );
 }
 

@@ -34,17 +34,63 @@ export const INTENSITIES = [
   ["05", "AFTER DARK", "18+ only", "moon"],
 ];
 
+export const AI_MODELS = [
+  { id: "openrouter/free", label: "OpenRouter Free (Auto)", short: "Auto Free" },
+  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Fast)", short: "Gemini Flash" },
+  { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (Deep & Creative)", short: "Gemini Pro" },
+  { id: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite (Ultra Fast)", short: "Flash-Lite" },
+];
+
+export const TIMER_PRESETS = [
+  { value: 0, label: "Off" },
+  { value: 15, label: "15s" },
+  { value: 30, label: "30s" },
+  { value: 45, label: "45s" },
+  { value: 60, label: "60s" },
+];
+
+export const DECK_MODES = {
+  BUILTIN: "builtin",
+  AI: "ai",
+};
+
+export function normalizeDeckMode(value) {
+  const v = String(value || "").trim().toLowerCase();
+  if (v === "ai" || v === "ai_generator" || v === "ai deck") return "ai";
+  return "builtin";
+}
+
+export const GENDER_OPTIONS = [
+  { id: "Male", label: "Male" },
+  { id: "Female", label: "Female" },
+  { id: "Non-binary", label: "Non-binary" },
+  { id: "Prefer to self-describe", label: "Self-describe" },
+];
+
+export function resolveGenderValue(genderOption, customGender = "") {
+  const opt = String(genderOption || "").trim();
+  if (!opt) return "";
+  if (opt === "Man") return "Male";
+  if (opt === "Woman") return "Female";
+  if (opt === "Prefer to self-describe") {
+    const custom = String(customGender || "").trim().slice(0, 24);
+    return custom || "Self-described";
+  }
+  return opt.slice(0, 24);
+}
+
 export const GAME_MODES = {
   ONLINE: {
     label: "Online",
     tagline: "Playing apart",
     description:
-      "Everyone is in a different place. Truths and dares work over chat, voice notes and video calls.",
+      "Everyone joins from their own device using a room code. Real-time cards, chat, and synchronized turns.",
   },
   OFFLINE: {
     label: "Offline",
-    tagline: "Playing together",
+    tagline: "Same room · One phone",
     description:
-      "Everyone is in the same room. Challenges are face to face, with no phones or internet needed.",
+      "Pass one phone around the room. Register everyone's names, pick a theme, and play face to face.",
   },
 };
+

@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CONFIG } from "../config";
-import { api, fetchMessages, messageFor } from "./api";
+import { CONFIG, normalizeDeckMode } from "../config";
+import {
+  api,
+  fetchMessages,
+  isStateEventMessage,
+  messageFor,
+  reduceRoomStateEvents,
+} from "./api";
+import { getSpecialRoundForTurn } from "./fallbackDeck";
 import { getSupabase } from "./supabase";
 
 /* Everything a room screen needs: the shared game state (from the database,
-   the single source of truth), live presence, chat, and the guarded actions.
-
-   Reading guide
-   - snapshot()         full state from the server; used on load and to resync
-   - postgres_changes   rooms / room_members / messages, scoped by room id and
-                        by Row Level Security
-   - Presence/Broadcast private channel "room:<id>" for online status + typing
-   - heartbeat          touch_member every few seconds so the server knows we
-                        are alive (this is what the reconnect grace uses)      */
+   the single source of truth), live presence, chat, and the guarded actions. */
 
 function uuid() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -31,10 +30,10 @@ function ts(value) {
 
 function sortMessages(list) {
   return [...list].sort((a, b) => {
-    if (a.pending !== b.pending) return a.pending ? 1 : -1; // unsent bubbles stay last
+    if (a.pending !== b.pending) return a.pending ? 1 : -1;
     const d = ts(a.created_at) - ts(b.created_at);
     if (d) return d;
-    return (typeof a.id === "number" && typeof b.id === "number" ? a.id - b.id : 0);
+    return typeof a.id === "number" && typeof b.id === "number" ? a.id - b.id : 0;
   });
 }
 
@@ -47,7 +46,7 @@ export function useRoom({ code, userId, notify }) {
   const [members, setMembers] = useState([]);
   const [removedList, setRemovedList] = useState([]);
   const [graceMs, setGraceMs] = useState(CONFIG.fallbackGraceSeconds * 1000);
-  const [messages, setMessages] = useState([]);
+  const [allMessages, setAllMessages] = useState([]);
   const [chatState, setChatState] = useState("loading"); // loading | ready | error
   const [dbUp, setDbUp] = useState(false);
   const [everUp, setEverUp] = useState(false);
@@ -59,6 +58,7 @@ export function useRoom({ code, userId, notify }) {
   const [browserOnline, setBrowserOnline] = useState(true);
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [actionError, setActionError] = useState("");
 
   const roomRef = useRef(null);
@@ -73,6 +73,8 @@ export function useRoom({ code, userId, notify }) {
   const busyRef = useRef(false);
   const lastKnown = useRef({});
   const prevConn = useRef("connecting");
+  const usedAiPromptsRef = useRef([]);
+  const aiAbortRef = useRef(null);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
 
@@ -85,7 +87,11 @@ export function useRoom({ code, userId, notify }) {
       const last = announced.current[memberId];
       if (kind === "joined" && last === "joined") return;
       if ((kind === "left" || kind === "removed") && last === kind) return;
-      if (kind === "disconnected" && !(last === undefined || last === "joined" || last === "reconnected")) return;
+      if (
+        kind === "disconnected" &&
+        !(last === undefined || last === "joined" || last === "reconnected")
+      )
+        return;
       if (kind === "reconnected" && last !== "disconnected") return;
       announced.current[memberId] = kind;
       say(kind, text);
@@ -97,17 +103,25 @@ export function useRoom({ code, userId, notify }) {
     (incoming) => {
       if (!incoming) return;
       const prev = roomRef.current;
-      // Ignore anything older than what is already shown (delayed Realtime
-      // events, slow responses). Equal timestamps are the same version.
       if (prev && ts(incoming.updated_at) < ts(prev.updated_at)) return;
 
       const merged = { ...(prev || {}), ...incoming };
+      if (incoming.deck_mode !== undefined && incoming.deck_mode !== null) {
+        merged.deck_mode = normalizeDeckMode(incoming.deck_mode);
+      } else if (prev?.deck_mode) {
+        merged.deck_mode = normalizeDeckMode(prev.deck_mode);
+      }
       roomRef.current = merged;
       setRoom(merged);
 
       if (merged.status === "closed") setTerminal((t) => t || "closed");
 
-      if (prev && prev.host_user && incoming.host_user && prev.host_user !== incoming.host_user) {
+      if (
+        prev &&
+        prev.host_user &&
+        incoming.host_user &&
+        prev.host_user !== incoming.host_user
+      ) {
         const next = membersRef.current.find((m) => m.user_id === incoming.host_user);
         if (next) say("host", `${next.nickname} is now the host.`);
       }
@@ -122,6 +136,7 @@ export function useRoom({ code, userId, notify }) {
         id: m.id,
         user_id: m.user_id,
         nickname: m.nickname,
+        gender: m.gender || null,
         seat: m.seat,
         seenAt: now - (m.seen_ago || 0) * 1000,
       }));
@@ -141,7 +156,7 @@ export function useRoom({ code, userId, notify }) {
 
   const mergeMessage = useCallback((incoming) => {
     if (!incoming) return;
-    setMessages((cur) => {
+    setAllMessages((cur) => {
       const idx = cur.findIndex(
         (m) => m.id === incoming.id || (incoming.client_id && m.client_id === incoming.client_id)
       );
@@ -154,30 +169,25 @@ export function useRoom({ code, userId, notify }) {
     });
   }, []);
 
-  const loadMessages = useCallback(
-    async (roomId) => {
-      const res = await fetchMessages(roomId, CONFIG.historyLimit);
-      if (!res.ok) {
-        setChatState((s) => (s === "ready" ? s : "error"));
-        return false;
-      }
-      setMessages((cur) => {
-        const map = new Map();
-        cur.filter((m) => !m.pending && !m.failed).forEach((m) => map.set(m.id, m));
-        res.messages.forEach((m) => map.set(m.id, m));
-        const real = [...map.values()];
-        const known = new Set(real.map((m) => m.client_id).filter(Boolean));
-        const unsent = cur.filter((m) => (m.pending || m.failed) && !known.has(m.client_id));
-        return sortMessages([...real, ...unsent]);
-      });
-      setChatState("ready");
-      return true;
-    },
-    []
-  );
+  const loadMessages = useCallback(async (roomId) => {
+    const res = await fetchMessages(roomId, CONFIG.historyLimit);
+    if (!res.ok) {
+      setChatState((s) => (s === "ready" ? s : "error"));
+      return false;
+    }
+    setAllMessages((cur) => {
+      const map = new Map();
+      cur.filter((m) => !m.pending && !m.failed).forEach((m) => map.set(m.id, m));
+      res.messages.forEach((m) => map.set(m.id, m));
+      const real = [...map.values()];
+      const known = new Set(real.map((m) => m.client_id).filter(Boolean));
+      const unsent = cur.filter((m) => (m.pending || m.failed) && !known.has(m.client_id));
+      return sortMessages([...real, ...unsent]);
+    });
+    setChatState("ready");
+    return true;
+  }, []);
 
-  /* Turns a failed server answer into the right screen. Returns true if it
-     was a terminal condition. */
   const handleFailure = useCallback((res, initial = false) => {
     switch (res?.error) {
       case "REMOVED":
@@ -214,8 +224,10 @@ export function useRoom({ code, userId, notify }) {
       handleFailure(snap);
       return false;
     }
+    if (snap.room?.id) {
+      await loadMessages(snap.room.id);
+    }
     applySnapshot(snap);
-    if (snap.room?.id) loadMessages(snap.room.id);
     return true;
   }, [code, applySnapshot, handleFailure, loadMessages]);
 
@@ -233,8 +245,6 @@ export function useRoom({ code, userId, notify }) {
       }
       return;
     }
-    // Heartbeat first: if we were away longer than the grace period this
-    // re-checks capacity before we show the room as ours.
     const beat = await api.touch(snap.room.id);
     if (!beat.ok && beat.error !== "NETWORK") {
       if (!handleFailure(beat, true)) {
@@ -244,9 +254,11 @@ export function useRoom({ code, userId, notify }) {
       return;
     }
     announced.current = {};
+    // Load messages BEFORE marking phase ready so persisted state events (cfg, card, prof, score)
+    // are reduced synchronously on the very first ready render without flashing default state.
+    await loadMessages(snap.room.id);
     applySnapshot(snap);
     setPhase("ready");
-    loadMessages(snap.room.id);
   }, [code, applySnapshot, handleFailure, loadMessages]);
 
   useEffect(() => {
@@ -270,6 +282,10 @@ export function useRoom({ code, userId, notify }) {
       if (row.id === meRef.current?.member_id) {
         if (row.status === "removed") setTerminal("removed");
         else if (row.status === "left") setTerminal((t) => t || "left");
+        else if (row.gender) {
+          meRef.current = { ...meRef.current, gender: row.gender };
+          setMe(meRef.current);
+        }
         return;
       }
 
@@ -279,16 +295,19 @@ export function useRoom({ code, userId, notify }) {
           id: row.id,
           user_id: row.user_id,
           nickname: row.nickname,
+          gender: row.gender || existing?.gender || null,
           seat: row.seat,
           seenAt: Date.now(),
         };
         const next = existing
-          ? membersRef.current.map((m) => (m.id === row.id ? { ...m, ...entry, seenAt: m.seenAt } : m))
+          ? membersRef.current.map((m) =>
+              m.id === row.id ? { ...m, ...entry, seenAt: m.seenAt } : m
+            )
           : [...membersRef.current, entry].sort((a, b) => a.seat - b.seat);
         membersRef.current = next;
         setMembers(next);
         if (!existing) {
-          delete announced.current[row.id]; // a (re)join starts a fresh cycle
+          delete announced.current[row.id];
           announce(row.id, "joined", `${row.nickname} joined the room.`);
         }
       } else if (existing) {
@@ -301,7 +320,6 @@ export function useRoom({ code, userId, notify }) {
         } else {
           announce(row.id, "left", `${row.nickname} left the room.`);
         }
-        // the host's list of removed players changes; fetch it again
         if (row.status === "removed") resync();
       }
     };
@@ -328,7 +346,7 @@ export function useRoom({ code, userId, notify }) {
         if (status === "SUBSCRIBED") {
           setDbUp(true);
           setEverUp(true);
-          resync(); // catch up on anything missed while disconnected
+          resync();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           setDbUp(false);
         }
@@ -347,9 +365,6 @@ export function useRoom({ code, userId, notify }) {
         if (ids.has(id) || id === myId) return;
         setAbsentSince((a) => ({ ...a, [id]: Date.now() }));
         clearTimeout(disconnectTimers.current[id]);
-        // Wait before announcing: a refresh or a delayed event often brings
-        // them straight back, and an intentional leave arrives via the
-        // database (which marks them "left") and cancels this notice.
         disconnectTimers.current[id] = setTimeout(() => {
           const m = membersRef.current.find((x) => x.id === id);
           if (m && !presentRef.current.has(id)) {
@@ -411,7 +426,6 @@ export function useRoom({ code, userId, notify }) {
       supabase.removeChannel(db);
       supabase.removeChannel(pres);
     };
-    // Channels live as long as the room + membership do.
   }, [phase, roomId, memberId, terminal, announce, applyRoom, mergeMessage, resync]);
 
   /* ---------- heartbeat, resync triggers, clock ------------------------- */
@@ -459,9 +473,18 @@ export function useRoom({ code, userId, notify }) {
 
   /* ---------- connection + member status -------------------------------- */
 
-  const conn = !browserOnline ? "offline" : dbUp ? "online" : everUp ? "reconnecting" : "connecting";
+  const conn = !browserOnline
+    ? "offline"
+    : dbUp
+      ? "online"
+      : everUp
+        ? "reconnecting"
+        : "connecting";
   useEffect(() => {
-    if (conn === "online" && (prevConn.current === "reconnecting" || prevConn.current === "offline")) {
+    if (
+      conn === "online" &&
+      (prevConn.current === "reconnecting" || prevConn.current === "offline")
+    ) {
       say("online", "You're back online.");
     }
     prevConn.current = conn;
@@ -476,8 +499,6 @@ export function useRoom({ code, userId, notify }) {
         return;
       }
       if (conn !== "online") {
-        // Our own connection is down, so we cannot know. Keep what we last knew
-        // rather than marking everyone offline.
         out[m.id] = lastKnown.current[m.id] || "checking";
         return;
       }
@@ -488,18 +509,81 @@ export function useRoom({ code, userId, notify }) {
       } else if (presenceUp) {
         out[m.id] = "checking";
       } else {
-        // Presence unavailable: fall back to the server heartbeat.
         out[m.id] = now - m.seenAt < 60000 ? "online" : inGrace ? "reconnecting" : "offline";
       }
     });
     return out;
-    // `tick` re-evaluates the grace period as time passes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [members, me, conn, present, presenceUp, presenceReady, absentSince, graceMs, tick]);
 
   useEffect(() => {
     if (conn === "online") lastKnown.current = { ...statuses };
   }, [conn, statuses]);
+
+  /* ---------- authoritative room state reduction ------------------------ */
+
+  const reduced = useMemo(
+    () => reduceRoomStateEvents({ room, members, messages: allMessages }),
+    [room, members, allMessages]
+  );
+
+  const enrichedMembers = useMemo(
+    () =>
+      members.map((m) => ({
+        ...m,
+        gender: reduced.memberGenders?.[m.id] || m.gender || null,
+      })),
+    [members, reduced.memberGenders]
+  );
+  membersRef.current = enrichedMembers;
+
+  const enrichedMe = useMemo(() => {
+    if (!me) return null;
+    return {
+      ...me,
+      gender: reduced.memberGenders?.[me.member_id] || me.gender || null,
+    };
+  }, [me, reduced.memberGenders]);
+  meRef.current = enrichedMe;
+
+  const visibleMessages = useMemo(
+    () => allMessages.filter((m) => !isStateEventMessage(m)),
+    [allMessages]
+  );
+
+  const effectiveRoom = useMemo(() => {
+    if (!room) return null;
+    const specialRound = getSpecialRoundForTurn(room.turn_no, reduced.settings.specialRounds);
+    return {
+      ...room,
+      mode: room.mode || "ONLINE",
+      question_mode: reduced.settings.questionMode || "both",
+      intensity: reduced.settings.intensity,
+      deck_mode: normalizeDeckMode(reduced.settings.deckMode),
+      ai_model: reduced.settings.aiModel,
+      timer_seconds: reduced.settings.timerSeconds,
+      special_rounds: reduced.settings.specialRounds,
+      current_question: reduced.activeQuestion,
+      skips_used_this_turn: reduced.skipsUsedThisTurn,
+      scores: reduced.scores,
+      completed_turns: reduced.completedTurns,
+      timer_deadline_ms: reduced.timerDeadlineMs,
+      special_round: specialRound,
+    };
+  }, [room, reduced]);
+
+  const effectiveRoomRef = useRef(null);
+  effectiveRoomRef.current = effectiveRoom;
+
+  // Keep usedAiPromptsRef seeded with any persisted AI prompts in the room
+  useEffect(() => {
+    if (Array.isArray(reduced.usedPrompts) && reduced.usedPrompts.length > 0) {
+      const merged = Array.from(
+        new Set([...usedAiPromptsRef.current, ...reduced.usedPrompts])
+      ).slice(-30);
+      usedAiPromptsRef.current = merged;
+    }
+  }, [reduced.usedPrompts]);
 
   /* ---------- chat ------------------------------------------------------- */
 
@@ -511,7 +595,7 @@ export function useRoom({ code, userId, notify }) {
         return true;
       }
       if (handleFailure(res)) return false;
-      setMessages((cur) =>
+      setAllMessages((cur) =>
         cur.map((m) =>
           m.client_id === clientId
             ? { ...m, pending: false, failed: true, error: messageFor(res.error, res.message) }
@@ -529,7 +613,7 @@ export function useRoom({ code, userId, notify }) {
       const self = meRef.current;
       if (!body || !self || !roomRef.current) return false;
       const clientId = uuid();
-      setMessages((cur) =>
+      setAllMessages((cur) =>
         sortMessages([
           ...cur,
           {
@@ -554,18 +638,18 @@ export function useRoom({ code, userId, notify }) {
 
   const retryMessage = useCallback(
     (clientId) => {
-      const target = messages.find((m) => m.client_id === clientId);
+      const target = allMessages.find((m) => m.client_id === clientId);
       if (!target) return;
-      setMessages((cur) =>
+      setAllMessages((cur) =>
         cur.map((m) => (m.client_id === clientId ? { ...m, pending: true, failed: false } : m))
       );
       deliver(clientId, target.body);
     },
-    [messages, deliver]
+    [allMessages, deliver]
   );
 
   const discardMessage = useCallback((clientId) => {
-    setMessages((cur) => cur.filter((m) => m.client_id !== clientId));
+    setAllMessages((cur) => cur.filter((m) => m.client_id !== clientId));
   }, []);
 
   const sendTyping = useCallback(() => {
@@ -573,22 +657,27 @@ export function useRoom({ code, userId, notify }) {
     const now = Date.now();
     if (!ch || now - lastTypingSent.current < CONFIG.typingThrottleMs) return;
     lastTypingSent.current = now;
-    ch.send({ type: "broadcast", event: "typing", payload: { member_id: meRef.current?.member_id } });
+    ch.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { member_id: meRef.current?.member_id },
+    });
   }, []);
 
   /* ---------- guarded actions -------------------------------------------- */
 
   const act = useCallback(
     async (fn) => {
-      if (busyRef.current) return null; // a double tap must not fire twice
+      if (busyRef.current) return null;
       busyRef.current = true;
       setBusy(true);
       setActionError("");
       try {
         const res = await fn();
         if (res?.room) applyRoom(res.room);
+        if (res?.stateMessage) mergeMessage(res.stateMessage);
         if (res && res.ok === false) {
-          if (res.error === "STALE_TURN") return res; // already moved on; the fresh state was applied
+          if (res.error === "STALE_TURN") return res;
           if (!handleFailure(res)) setActionError(messageFor(res.error, res.message));
         }
         return res;
@@ -597,18 +686,187 @@ export function useRoom({ code, userId, notify }) {
         setBusy(false);
       }
     },
-    [applyRoom, handleFailure]
+    [applyRoom, mergeMessage, handleFailure]
   );
 
   const turnNo = () => roomRef.current?.turn_no;
   const rid = () => roomRef.current?.id;
 
+  const generateAndPersistAiCard = useCallback(
+    async (kind, isSkip = false) => {
+      const curRoom = effectiveRoomRef.current;
+      if (!curRoom) return { ok: false, error: "ROOM_NOT_FOUND" };
+
+      const requestedTurnNo = curRoom.turn_no;
+      const requestedKind = (
+        kind ||
+        curRoom.current_question?.kind ||
+        (curRoom.question_mode === "dare" ? "dare" : "truth")
+      ).toLowerCase();
+
+      const currentMembers = membersRef.current || [];
+      const activeMember =
+        currentMembers.find((m) => m.seat === curRoom.current_player) || null;
+      const otherMembers = currentMembers.filter((m) => m.seat !== curRoom.current_player);
+      const targetMember =
+        otherMembers.length > 0
+          ? otherMembers[(requestedTurnNo - 1) % otherMembers.length]
+          : null;
+      const specialRound = getSpecialRoundForTurn(requestedTurnNo, curRoom.special_rounds);
+
+      if (aiAbortRef.current) {
+        aiAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      aiAbortRef.current = controller;
+
+      setAiGenerating(true);
+      try {
+        const response = await fetch("/api/generate-card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            type: requestedKind,
+            theme: curRoom.intensity || "PLAYFUL",
+            mode: "online",
+            selectedModel: curRoom.ai_model || "openrouter/free",
+            players: currentMembers.map((m) => ({
+              name: m.nickname,
+              gender: m.gender || undefined,
+              seat: m.seat,
+            })),
+            currentPlayer: activeMember
+              ? { name: activeMember.nickname, gender: activeMember.gender || undefined }
+              : null,
+            targetPlayer: targetMember
+              ? { name: targetMember.nickname, gender: targetMember.gender || undefined }
+              : null,
+            roundType: specialRound.id,
+            excludePrompts: usedAiPromptsRef.current.slice(-15),
+            allowFallback: true,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.success || !data?.card) {
+          return {
+            ok: false,
+            error: "AI_FAILED",
+            message: data?.error || "Could not generate an AI card right now.",
+          };
+        }
+
+        // Check if turn changed while AI request was in flight
+        if (effectiveRoomRef.current?.turn_no !== requestedTurnNo) {
+          return { ok: false, error: "STALE_TURN", message: "The turn changed." };
+        }
+
+        const card = data.card;
+        if (card.prompt) {
+          usedAiPromptsRef.current = [...usedAiPromptsRef.current.slice(-25), card.prompt];
+        }
+
+        if (data.fallback) {
+          say(
+            "info",
+            "AI provider was unreachable — drew a built-in fallback card for this turn. AI Deck remains selected."
+          );
+        }
+
+        const saveRes = await api.setAiQuestion(curRoom.id, requestedTurnNo, card, isSkip);
+        return saveRes;
+      } catch (err) {
+        if (err?.name === "AbortError") {
+          return { ok: false, error: "ABORTED", message: "AI request was cancelled." };
+        }
+        return {
+          ok: false,
+          error: "NETWORK",
+          message: err?.message || "Failed to generate AI card.",
+        };
+      } finally {
+        if (aiAbortRef.current === controller) {
+          aiAbortRef.current = null;
+        }
+        setAiGenerating(false);
+      }
+    },
+    [say]
+  );
+
   const actions = useMemo(
     () => ({
       start: () => act(() => api.startGame(rid())),
-      draw: (kind) => act(() => api.draw(rid(), kind, turnNo())),
-      skip: () => act(() => api.skip(rid(), turnNo())),
+      draw: (kind) =>
+        act(async () => {
+          const cur = effectiveRoomRef.current;
+          if (normalizeDeckMode(cur?.deck_mode) === "ai") {
+            return generateAndPersistAiCard(kind, false);
+          }
+          return api.draw(rid(), String(kind || "TRUTH").toUpperCase(), turnNo());
+        }),
+      drawAi: (kind) => act(() => generateAndPersistAiCard(kind, false)),
+      skip: () =>
+        act(async () => {
+          const cur = effectiveRoomRef.current;
+          if (
+            normalizeDeckMode(cur?.deck_mode) === "ai" ||
+            cur?.current_question?.source === "ai" ||
+            cur?.current_question?.source === "fallback"
+          ) {
+            if ((cur?.skips_used_this_turn || 0) >= 1) {
+              return {
+                ok: false,
+                error: "SKIP_LIMIT",
+                message: "Only one skip is allowed per turn.",
+              };
+            }
+            const kind = cur?.current_question?.kind || "truth";
+            return generateAndPersistAiCard(kind, true);
+          }
+          return api.skip(rid(), turnNo());
+        }),
       next: () => act(() => api.next(rid(), turnNo())),
+      completeTurn: () =>
+        act(async () => {
+          const cur = effectiveRoomRef.current;
+          if (!cur) return { ok: false, error: "ROOM_NOT_FOUND" };
+          const q = cur.current_question;
+          const kind = (q?.kind || q?.type || "truth").toLowerCase();
+          const basePts = kind === "dare" ? 2 : 1;
+          const bonusPts = Number(q?.bonusPoints || cur.special_round?.bonusPoints || 0);
+          const totalPts = basePts + bonusPts;
+          return api.completeTurnScore(
+            cur.id,
+            cur.turn_no,
+            totalPts,
+            cur.current_player,
+            kind
+          );
+        }),
+      updateSettings: async (newSettings) => {
+        const cur = effectiveRoomRef.current;
+        if (!cur) return { ok: false, error: "ROOM_NOT_FOUND" };
+        // If switching away from AI while an AI card request is in flight, cancel the in-flight fetch
+        if (normalizeDeckMode(newSettings?.deckMode) === "builtin" && aiAbortRef.current) {
+          aiAbortRef.current.abort();
+          aiAbortRef.current = null;
+        }
+        const res = await api.setRoomSettings(cur.id, newSettings, Boolean(cur.locked));
+        if (res?.room) applyRoom(res.room);
+        if (res?.stateMessage) mergeMessage(res.stateMessage);
+        if (res && res.ok === false) {
+          if (!handleFailure(res)) setActionError(messageFor(res.error, res.message));
+        }
+        return res;
+      },
+      updateProfile: async (gender) => {
+        const cur = effectiveRoomRef.current;
+        if (!cur) return { ok: false, error: "ROOM_NOT_FOUND" };
+        const res = await api.setMemberProfile(cur.id, gender);
+        if (res?.stateMessage) mergeMessage(res.stateMessage);
+        return res;
+      },
       setMode: (mode) => act(() => api.setMode(rid(), mode)),
       setLock: (locked) => act(() => api.setLock(rid(), locked)),
       reset: (mode) => act(() => api.resetGame(rid(), mode)),
@@ -634,30 +892,30 @@ export function useRoom({ code, userId, notify }) {
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [act, resync]
+    [act, resync, generateAndPersistAiCard, applyRoom, mergeMessage, handleFailure]
   );
 
   /* ---------- derived ---------------------------------------------------- */
 
   const isHost = Boolean(room && userId && room.host_user === userId);
-  const hostMember = members.find((m) => m.user_id === room?.host_user) || null;
-  const currentMember = room ? members.find((m) => m.seat === room.current_player) || null : null;
-  const occupied = members.filter((m) => statuses[m.id] !== "offline").length;
-  const typingNames = members
-    .filter((m) => typing[m.id])
-    .map((m) => m.nickname);
+  const hostMember = enrichedMembers.find((m) => m.user_id === room?.host_user) || null;
+  const currentMember = room
+    ? enrichedMembers.find((m) => m.seat === room.current_player) || null
+    : null;
+  const occupied = enrichedMembers.filter((m) => statuses[m.id] !== "offline").length;
+  const typingNames = enrichedMembers.filter((m) => typing[m.id]).map((m) => m.nickname);
 
   return {
     phase,
     blocked,
     terminal,
-    room,
-    me,
-    members,
+    room: effectiveRoom,
+    me: enrichedMe,
+    members: enrichedMembers,
     removedList,
     statuses,
     conn,
-    messages,
+    messages: visibleMessages,
     chatState,
     typingNames,
     isHost,
@@ -665,7 +923,8 @@ export function useRoom({ code, userId, notify }) {
     currentMember,
     occupied,
     graceMs,
-    busy,
+    busy: busy || aiGenerating,
+    aiGenerating,
     actionError,
     clearActionError: () => setActionError(""),
     reload: load,

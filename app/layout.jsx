@@ -1,8 +1,13 @@
 import "./globals.css";
+import "./styles/home-forms.css";
+import "./styles/lobby-game.css";
+import "./styles/chat.css";
+import "./styles/modals.css";
+import "./styles/offline.css";
 
 export const metadata = {
   title: "BETWEEN — Truth or dare for your people",
-  description: "A private truth or dare game for one to eight people."
+  description: "A private truth or dare game for one to eight people.",
 };
 
 // Lets the page draw under phone browser bars (safe-area padding handles the
@@ -12,7 +17,7 @@ export const viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#090808"
+  themeColor: "#090808",
 };
 
 export default function RootLayout({ children }) {

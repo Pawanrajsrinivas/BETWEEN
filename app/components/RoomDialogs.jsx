@@ -84,7 +84,7 @@ export function RoomDialogs({ confirm, onClose, room, members, isHost, actions, 
       >
         <p>
           The current game ends and everyone goes back to the lobby. Turn order and used
-          questions reset. Chat is kept. You can change the mode before starting again.
+          questions reset. Chat is kept. You can change the settings before starting again.
         </p>
       </ConfirmDialog>
     );

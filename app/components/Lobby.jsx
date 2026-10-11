@@ -5,7 +5,8 @@ import { Decor, Hourglass, Icon } from "../Art";
 import { Avatar, ConnectionBadge, ModeBadge, StatusPill } from "./PlayerBits";
 import { RoomDialogs } from "./RoomDialogs";
 import { HostTools } from "./HostTools";
-import { GAME_MODES } from "../config";
+import { GameSettingsModal } from "./GameSettingsModal";
+import { GAME_MODES, normalizeDeckMode } from "../config";
 
 function Logo() {
   return <div className="logo">BETWEEN</div>;
@@ -19,6 +20,7 @@ export function PlayerCard({ member, status, isMe, isHostMember, canRemove, onRe
       <span className="player-tags">
         {isMe && <em className="badge ghost">You</em>}
         {isHostMember && <em className="badge">Host</em>}
+        {member.gender && <em className="badge ghost">{member.gender}</em>}
       </span>
       <StatusPill status={status} />
       {canRemove && (
@@ -48,11 +50,26 @@ export function EmptySeat({ n }) {
   );
 }
 
-export function Lobby({ room, me, members, statuses, removedList, isHost, occupied, conn, busy, actionError, actions, onLeave }) {
+export function Lobby({
+  room,
+  me,
+  members,
+  statuses,
+  removedList,
+  isHost,
+  occupied,
+  conn,
+  busy,
+  actionError,
+  actions,
+  onLeave,
+}) {
   const [confirm, setConfirm] = useState(null);
   const [copied, setCopied] = useState(null);
   const [copyError, setCopyError] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const isAiMode = normalizeDeckMode(room.deck_mode) === "ai";
   const needed = Math.min(room.capacity, 2);
   const enough = occupied >= needed;
   const openSeats = Math.max(0, room.capacity - members.length);
@@ -85,6 +102,7 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
   }
 
   const hostMemberId = members.find((m) => m.user_id === room.host_user)?.id;
+  const modeInfo = GAME_MODES[room.mode] || GAME_MODES.ONLINE;
 
   return (
     <main className="screen lobby">
@@ -94,6 +112,14 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
         <Logo />
         <div className="topbar-right">
           <ConnectionBadge conn={conn} />
+          <button
+            type="button"
+            className={`leave-btn ai-toggle-btn ${isAiMode ? "active" : ""}`}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Icon name={isAiMode ? "flame" : "sparkle"} />
+            <span>{isAiMode ? "AI Deck" : "Built-in Deck"}</span>
+          </button>
           <button type="button" className="leave-btn" onClick={() => setConfirm({ type: "leave" })}>
             <Icon name="leave" />
             <span>Leave Room</span>
@@ -103,7 +129,16 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
 
       <div className="lobby-body wide">
         <div className="lobby-meta">
-          <ModeBadge mode={room.mode} />
+          <ModeBadge mode="ONLINE" />
+          <span className="meta-chip">
+            <Icon name={isAiMode ? "flame" : "sparkle"} />
+            {isAiMode ? "AI Generator" : "Built-in Deck"}
+          </span>
+          <span className="meta-chip">{room.intensity}</span>
+          {room.timer_seconds > 0 && (
+            <span className="meta-chip">{room.timer_seconds}s Timer</span>
+          )}
+          {room.special_rounds && <span className="meta-chip">Special Rounds</span>}
           <span className="meta-chip">
             <Icon name="users" />
             {solo ? "Solo" : `${room.capacity} players max`}
@@ -137,7 +172,8 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
 
         <div className="occupancy" role="status">
           <span>
-            <strong>{occupied}</strong> of <strong>{room.capacity}</strong> {room.capacity === 1 ? "player" : "players"} in the room
+            <strong>{occupied}</strong> of <strong>{room.capacity}</strong>{" "}
+            {room.capacity === 1 ? "player" : "players"} in the room
           </span>
           <span className="pips" aria-hidden="true">
             {Array.from({ length: room.capacity }, (_, i) => (
@@ -191,6 +227,17 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
             {copied === "link" ? "Link copied" : "Copy invite link"}
           </button>
 
+          {isHost && (
+            <button
+              className="secondary outline"
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Icon name="settings" />
+              Deck &amp; AI Settings
+            </button>
+          )}
+
           {isHost ? (
             <button
               className="primary"
@@ -229,10 +276,29 @@ export function Lobby({ room, me, members, statuses, removedList, isHost, occupi
 
         {!isHost && (
           <p className="mode-note">
-            <strong>{GAME_MODES[room.mode].label} mode:</strong> {GAME_MODES[room.mode].description}
+            <strong>{modeInfo.label} mode:</strong> {modeInfo.description}
           </p>
         )}
       </div>
+
+      <GameSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        canEdit={isHost}
+        isOnline={true}
+        busy={busy}
+        settings={{
+          deckMode: normalizeDeckMode(room.deck_mode),
+          aiModel: room.ai_model || "openrouter/free",
+          intensity: room.intensity || "PLAYFUL",
+          mode: room.question_mode || "both",
+          timerSeconds: room.timer_seconds || 0,
+          specialRounds: Boolean(room.special_rounds),
+        }}
+        onSave={async (next) => {
+          return actions.updateSettings(next);
+        }}
+      />
 
       <RoomDialogs
         confirm={confirm}

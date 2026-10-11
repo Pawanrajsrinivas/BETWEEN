@@ -91,24 +91,28 @@
     },
     "AFTER DARK": {
       "TRUTH": [
-        ["Personal", 1, "What is something about intimacy and connection that you wish more people understood?"],
-        ["Relationships", 1, "What do you find most attractive about a person, beyond how they look?"],
-        ["Bold", 1, "What does your most romantic evening look like, with nothing held back?"],
-        ["Personal", 1, "What late-night thought do you rarely say out loud?"],
-        ["Relationships", 0, "What makes you feel most desired and appreciated?"],
-        ["Bold", 0, "What is the most attractive habit a person can have?"],
-        ["Relationships", 0, "What is a boundary you appreciate people respecting, and how do you like to be asked?"],
-        ["Bold", 0, "What does your ideal slow, flirty evening look like?"]
+        ["Bold", 1, "What is your biggest secret turn-on that you rarely admit out loud?"],
+        ["Relationships", 1, "What subtle move or voice tone makes you lose your composure almost instantly?"],
+        ["Bold", 1, "What is the boldest late-night fantasy you have never confessed to anyone?"],
+        ["Personal", 1, "What is an instant bedroom dealbreaker for you, and what is your ultimate green flag?"],
+        ["Bold", 0, "Which player here gives off the strongest late-night chemistry, and what gave them away?"],
+        ["Relationships", 0, "What could another player say or do right now that would make your pulse spike?"],
+        ["Bold", 0, "If you were snowed in for a weekend with another player here, what tension would break first?"],
+        ["Relationships", 0, "What was your most electric first impression of another player here?"],
+        ["Bold", 0, "What is the most daring romantic risk you have ever taken after midnight?"],
+        ["Personal", 0, "Which player here has the most dangerously seductive voice or presence?"]
       ],
       "DARE": [
-        ["Challenges", 1, "Write a two-line romantic poem and read it aloud in your most dramatic voice."],
-        ["Bold", 1, "Pick the playlist for a slow, late-night evening and name your first three songs."],
-        ["Bold", 1, "Say a compliment to yourself in the mirror, and mean it."],
-        ["Challenges", 1, "Describe your favourite scent, fabric and song for a perfect night in, in the chat."],
-        ["Relationships", 0, "Send another player a voice note with the most charming compliment you can give, if they would like to hear one."],
-        ["Bold", 0, "Describe what you would wear to a late-night dinner and what you hope someone notices."],
-        ["Relationships", 0, "If you both agree, hold a slow gaze with another player on camera for fifteen seconds."],
-        ["Funny", 0, "Record a low, warm voice note describing your ideal midnight snack and what makes it perfect."]
+        ["Bold", 1, "Lower your voice and describe your #1 physical or vocal turn-on in vivid detail."],
+        ["Challenges", 1, "Confess the boldest late-night thought you have had today in two unfiltered sentences in the chat."],
+        ["Bold", 1, "Deliver the exact slow, seductive line you would use at the end of a perfect night."],
+        ["Challenges", 1, "Rank your top three attraction triggers from boldest to most unexpected in the chat."],
+        ["Relationships", 0, "Send another player a slow, low-voiced voice note telling them the most attractive thing about their vibe."],
+        ["Bold", 0, "Tell another player the exact moment tonight you noticed their chemistry, or confess your biggest turn-on."],
+        ["Relationships", 0, "If you both agree, hold unbroken eye contact with another player on camera for 15 seconds, then say what you thought."],
+        ["Bold", 0, "Let another player ask you one unfiltered 18+ question about your turn-ons, and answer without hesitating."],
+        ["Challenges", 0, "Type a two-sentence midnight confession to another player in the chat—or read it aloud in your lowest voice."],
+        ["Bold", 0, "Rate the chemistry in this group from 1 to 10 and name who is raising the temperature the most."]
       ]
     }
   },
@@ -203,24 +207,28 @@
     },
     "AFTER DARK": {
       "TRUTH": [
-        ["Personal", 1, "What is your idea of a perfect night in, from start to finish?"],
-        ["Relationships", 1, "What is the most attractive quality a person can have, apart from looks?"],
-        ["Personal", 1, "What do you find quietly romantic that other people might overlook?"],
-        ["Bold", 1, "What is a wish for your love life that you have not told many people?"],
-        ["Relationships", 0, "What is the best compliment you have ever received about how you carry yourself?"],
-        ["Bold", 0, "What is the most romantic setting you can imagine, and who here would enjoy it least?"],
-        ["Relationships", 0, "How do you like to be told you are wanted, and how do you tell others?"],
-        ["Bold", 0, "What is the boldest flirt you have ever seen succeed?"]
+        ["Bold", 1, "What is your biggest secret turn-on that you almost never confess out loud?"],
+        ["Relationships", 1, "What subtle physical gesture or voice tone makes your pulse spike immediately?"],
+        ["Bold", 1, "What is a late-night fantasy you have kept entirely to yourself until tonight?"],
+        ["Personal", 1, "What is your #1 attraction trigger, and what is an instant dealbreaker?"],
+        ["Bold", 0, "Who in this room gives off the most intense late-night chemistry, and what gave it away?"],
+        ["Relationships", 0, "What is the most seductive detail you have noticed about another player sitting here?"],
+        ["Bold", 0, "If the lights went out for five minutes, what tension in this room would break first?"],
+        ["Relationships", 0, "How do you secretly signal when you want someone to make a move on you?"],
+        ["Bold", 0, "What is the boldest after-hours risk you have ever taken with someone you wanted?"],
+        ["Personal", 0, "Who here has the most dangerous smile or gaze when they are trying to get their way?"]
       ],
       "DARE": [
-        ["Bold", 1, "Say a confident, flirty line to the room, or to yourself in a mirror, and mean it."],
-        ["Challenges", 1, "Describe a slow dance you would love, from the song to the setting, in vivid detail."],
-        ["Funny", 1, "Deliver your most seductive villain monologue about dessert."],
-        ["Challenges", 1, "Pose like a classic film star for ten seconds and hold it."],
-        ["Relationships", 0, "If you both agree, hold another player's gaze for fifteen seconds, then say what you noticed."],
-        ["Bold", 0, "Give another player a slow, sincere compliment you would not normally say out loud, only if they would like one."],
-        ["Relationships", 0, "Ask another player to share a dance or a slow sway, only if they say yes."],
-        ["Bold", 0, "Describe the most irresistible entrance anyone could make into this room, then act it out."]
+        ["Bold", 1, "Lower your voice and confess your #1 physical or vocal turn-on with zero hesitation."],
+        ["Challenges", 1, "Deliver the exact slow, confident line you would use to pull someone closer at midnight."],
+        ["Bold", 1, "Describe your ideal high-chemistry late-night scenario in three vivid sentences."],
+        ["Challenges", 1, "Hold your most magnetic, slow-burn gaze for ten seconds, then share your boldest impulse."],
+        ["Relationships", 0, "If you both agree, hold another player's gaze from close range for 15 seconds—or confess your biggest turn-on."],
+        ["Bold", 0, "With mutual consent, whisper the most alluring thing you noticed about another player—or say it aloud to the room."],
+        ["Relationships", 0, "If both of you agree, sit right beside another player and share a slow compliment—or answer two bold questions from the group."],
+        ["Bold", 0, "Let another player ask you one unfiltered 18+ question about your desires, and answer it honestly."],
+        ["Challenges", 0, "Look directly at another player and tell them the exact move that would win you over tonight."],
+        ["Bold", 0, "Rank the chemistry in this room from subtle spark to electric heat and name who is turning up the temperature."]
       ]
     }
   }

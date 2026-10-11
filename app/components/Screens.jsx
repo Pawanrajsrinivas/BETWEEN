@@ -7,19 +7,17 @@ import {
   Heart,
   Hourglass,
   Icon,
-  OfflineArt,
-  OnlineArt,
   Rose,
   Snake,
 } from "../Art";
-import { CONFIG, GAME_MODES, INTENSITIES } from "../config";
+import { AI_MODELS, CONFIG, GENDER_OPTIONS, INTENSITIES, normalizeDeckMode } from "../config";
 
 export function Logo() {
   return <div className="logo">BETWEEN</div>;
 }
 
 function titleCase(text) {
-  return text.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  return (text || "").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
 /* ---------- small states ------------------------------------------------ */
@@ -101,7 +99,17 @@ export function AgeGate({ onConfirm, onDecline }) {
 
 /* ---------- home -------------------------------------------------------- */
 
-export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinError, onRejoin }) {
+export function HomeScreen({
+  onCreate,
+  onJoin,
+  onOffline,
+  savedOfflineSession,
+  onResumeOffline,
+  rejoinList,
+  rejoining,
+  rejoinError,
+  onRejoin,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -129,7 +137,7 @@ export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinErro
               onCreate();
             }}
           >
-            Start Playing
+            Play Online
           </button>
         </nav>
 
@@ -164,26 +172,48 @@ export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinErro
           </p>
 
           <div className="cta-row">
-            <button className="primary" onClick={onCreate}>
-              Create a Room
+            <button type="button" className="primary" onClick={onCreate}>
+              <Icon name="globe" />
+              Play Online
               <span aria-hidden="true">→</span>
             </button>
 
-            <button className="secondary outline" onClick={onJoin}>
-              Join a Room
+            <button type="button" className="secondary outline" onClick={onOffline}>
+              <Icon name="offline" />
+              Play Offline
+            </button>
+
+            <button type="button" className="secondary outline" onClick={onJoin}>
+              Join with Code
             </button>
           </div>
 
-          {rejoinList.length > 0 && (
-            <div className="rejoin" aria-label="Your rooms">
+          {(rejoinList.length > 0 || savedOfflineSession) && (
+            <div className="rejoin" aria-label="Your active games">
+              {savedOfflineSession && (
+                <div className="rejoin-card" key="offline-saved">
+                  <div className="rejoin-info">
+                    <strong>
+                      Offline Pass &amp; Play
+                      <em className="mode-badge mini offline">Single Phone</em>
+                    </strong>
+                    <span>
+                      {savedOfflineSession.players?.map((p) => p.name).join(", ")} · Turn #
+                      {savedOfflineSession.turnNo || 1}
+                    </span>
+                  </div>
+                  <button type="button" className="primary" onClick={onResumeOffline}>
+                    Resume Game
+                  </button>
+                </div>
+              )}
+
               {rejoinList.map((r) => (
                 <div className="rejoin-card" key={r.code}>
                   <div className="rejoin-info">
                     <strong>
                       Room {r.code}
-                      <em className={`mode-badge mini ${r.mode === "OFFLINE" ? "offline" : "online"}`}>
-                        {r.mode === "OFFLINE" ? "Offline" : "Online"}
-                      </em>
+                      <em className="mode-badge mini online">Online</em>
                     </strong>
                     <span>
                       You&apos;re in this room as {r.nickname}
@@ -228,8 +258,8 @@ export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinErro
             Just your people.
           </h2>
           <p className="lede">
-            BETWEEN is a private game for the people you choose. Rooms hold anywhere from one to
-            eight players, questions match the energy you choose, and your chat stays in the room.
+            BETWEEN is a private game for the people you choose. Play online from separate devices
+            with a room code, or pass a single phone around the room in offline mode.
           </p>
         </div>
 
@@ -238,22 +268,22 @@ export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinErro
             <span className="step-icon">
               <Icon name="heart" />
             </span>
-            <strong>Create a room</strong>
-            <span>Pick online or offline, your energy, and a six-character code.</span>
+            <strong>Choose how to play</strong>
+            <span>Open an online multiplayer room with a six-character code, or play offline on one device.</span>
           </li>
           <li>
             <span className="step-icon">
               <Icon name="lips" />
             </span>
-            <strong>Share the code</strong>
-            <span>Your people join. No one else can.</span>
+            <strong>Pick your theme &amp; AI</strong>
+            <span>Switch between the curated deck and live AI cards tailored to your group.</span>
           </li>
           <li>
             <span className="step-icon">
               <Icon name="flame" />
             </span>
             <strong>Take turns</strong>
-            <span>Truth or dare, with a private chat alongside.</span>
+            <span>Truth or dare, timers, special rounds, and scores.</span>
           </li>
         </ol>
       </section>
@@ -271,7 +301,7 @@ export function HomeScreen({ onCreate, onJoin, rejoinList, rejoining, rejoinErro
   );
 }
 
-/* ---------- create / join form ------------------------------------------ */
+/* ---------- online create / join form ----------------------------------- */
 
 export function FormScreen({
   join,
@@ -279,27 +309,52 @@ export function FormScreen({
   error,
   name,
   setName,
+  genderOption,
+  setGenderOption,
+  customGender,
+  setCustomGender,
   room,
   setRoom,
-  gameMode,
-  setGameMode,
   intensity,
   onSelectIntensity,
   capacity,
   setCapacity,
+  deckMode = "builtin",
+  setDeckMode,
+  aiModel = "openrouter/free",
+  setAiModel,
   onSwitch,
   onBack,
   onSubmit,
 }) {
-  const needsMode = !join && !gameMode;
-  const disabled = !name.trim() || (join && room.trim().length < 4) || needsMode || busy;
+  const [validationError, setValidationError] = useState("");
+  const normalizedDeck = normalizeDeckMode(deckMode);
+
+  const missingName = !name.trim();
+  const missingGender = !genderOption;
+  const missingCode = join && room.trim().length < 4;
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!disabled) onSubmit();
+    if (busy) return;
+    if (missingName) {
+      setValidationError("Please enter your nickname.");
+      return;
+    }
+    if (missingGender) {
+      setValidationError("Please select your gender so prompts can adapt naturally.");
+      return;
+    }
+    if (missingCode) {
+      setValidationError("Please enter a valid room code.");
+      return;
+    }
+    setValidationError("");
+    onSubmit();
   }
 
   const sizes = Array.from({ length: CONFIG.maxCapacity }, (_, i) => i + 1);
+  const displayError = error || validationError;
 
   return (
     <main className="screen form-screen">
@@ -314,27 +369,34 @@ export function FormScreen({
       </header>
 
       <form className="panel form-card" onSubmit={handleSubmit} noValidate>
-        <div className="segmented" role="tablist" aria-label="Room action">
+        <div className="segmented" role="tablist" aria-label="Online room action">
           <button
             type="button"
             role="tab"
             aria-selected={!join}
             className={!join ? "on" : ""}
-            onClick={() => onSwitch("create")}
+            onClick={() => {
+              setValidationError("");
+              onSwitch("create");
+            }}
           >
-            Create Room
+            Create Online Room
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={join}
             className={join ? "on" : ""}
-            onClick={() => onSwitch("join")}
+            onClick={() => {
+              setValidationError("");
+              onSwitch("join");
+            }}
           >
             Join Room
           </button>
         </div>
 
+        {/* Player Nickname */}
         <div className="field">
           <label htmlFor="player-name">Your Nickname</label>
           <div className="input-wrap">
@@ -342,8 +404,11 @@ export function FormScreen({
             <input
               id="player-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Baby, Angel, Trouble"
+              onChange={(e) => {
+                setValidationError("");
+                setName(e.target.value);
+              }}
+              placeholder="e.g. Alex, Jordan, Trouble"
               maxLength={CONFIG.nicknameMax}
               autoComplete="nickname"
               autoCapitalize="words"
@@ -351,6 +416,44 @@ export function FormScreen({
             />
           </div>
         </div>
+
+        {/* Player Gender Selection (Online Create & Join) */}
+        <fieldset className="field">
+          <legend>Your Gender</legend>
+          <div className="online-gender-grid" role="radiogroup" aria-label="Your gender">
+            {GENDER_OPTIONS.map((g) => {
+              const selected = genderOption === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`online-gender-btn ${selected ? "selected" : ""}`}
+                  onClick={() => {
+                    setValidationError("");
+                    setGenderOption?.(g.id);
+                  }}
+                >
+                  {g.label}
+                </button>
+              );
+            })}
+          </div>
+          {genderOption === "Prefer to self-describe" && (
+            <div className="input-wrap" style={{ marginTop: 8 }}>
+              <Icon name="sparkle" />
+              <input
+                id="player-custom-gender"
+                value={customGender || ""}
+                onChange={(e) => setCustomGender?.(e.target.value)}
+                placeholder="Describe your gender or pronouns (optional)"
+                maxLength={24}
+                aria-label="Custom gender or pronouns"
+              />
+            </div>
+          )}
+        </fieldset>
 
         {join ? (
           <div className="field">
@@ -361,46 +464,94 @@ export function FormScreen({
                 id="room-code"
                 className="code-input"
                 value={room}
-                onChange={(e) => setRoom(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                onChange={(e) => {
+                  setValidationError("");
+                  setRoom(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+                }}
                 placeholder="ABC123"
                 maxLength={CONFIG.roomCodeLength + 2}
                 autoComplete="off"
                 autoCapitalize="characters"
                 spellCheck={false}
                 enterKeyHint="go"
-                aria-invalid={error ? "true" : undefined}
+                aria-invalid={displayError ? "true" : undefined}
               />
             </div>
-            <small className="hint">Coming back? Use the same code and you&apos;ll rejoin your seat.</small>
+            <small className="hint">
+              Coming back? Enter the same code and you&apos;ll rejoin your seat.
+            </small>
           </div>
         ) : (
           <>
-            <fieldset className="field">
-              <legend>Where are you playing?</legend>
-              <div className="mode-pick" role="radiogroup" aria-label="Game mode">
-                {Object.entries(GAME_MODES).map(([key, info]) => (
+            {/* Card Source: Built-in Deck vs AI Generator */}
+            {setDeckMode && (
+              <fieldset className="field">
+                <legend>Card Source</legend>
+                <div className="settings-source-grid">
                   <button
-                    key={key}
                     type="button"
-                    role="radio"
-                    aria-checked={gameMode === key}
-                    className={`mode-option ${gameMode === key ? "selected" : ""}`}
-                    onClick={() => setGameMode(key)}
+                    onClick={() => setDeckMode("builtin")}
+                    className={`settings-source-card ${normalizedDeck === "builtin" ? "active" : ""}`}
+                    aria-pressed={normalizedDeck === "builtin"}
                   >
-                    {key === "ONLINE" ? <OnlineArt /> : <OfflineArt />}
-                    <strong>{info.label}</strong>
-                    <em>{info.tagline}</em>
-                    <small>{info.description}</small>
+                    <div className="settings-source-top">
+                      <span className="settings-source-icon">
+                        <Icon name="sparkle" size={16} />
+                      </span>
+                      <span className="settings-source-badge">Curated</span>
+                    </div>
+                    <div className="settings-source-name">Built-in Deck</div>
+                    <div className="settings-source-desc">
+                      Handcrafted BETWEEN prompts with instant zero-latency draws.
+                    </div>
                   </button>
-                ))}
-              </div>
-              {needsMode && <small className="hint">Choose one to continue.</small>}
-            </fieldset>
 
+                  <button
+                    type="button"
+                    onClick={() => setDeckMode("ai")}
+                    className={`settings-source-card ai-variant ${normalizedDeck === "ai" ? "active" : ""}`}
+                    aria-pressed={normalizedDeck === "ai"}
+                  >
+                    <div className="settings-source-top">
+                      <span className="settings-source-icon">
+                        <Icon name="flame" size={16} />
+                      </span>
+                      <span className="settings-source-badge ai">Live AI</span>
+                    </div>
+                    <div className="settings-source-name">AI Generator</div>
+                    <div className="settings-source-desc">
+                      Dynamic player-aware prompts tailored to your room &amp; theme.
+                    </div>
+                  </button>
+                </div>
+
+                {normalizedDeck === "ai" && setAiModel && (
+                  <div style={{ marginTop: 10 }}>
+                    <label htmlFor="create-ai-model" className="sub-label">
+                      AI Engine Model
+                    </label>
+                    <select
+                      id="create-ai-model"
+                      className="settings-select"
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                    >
+                      {AI_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </fieldset>
+            )}
+
+            {/* Theme Selection */}
             <fieldset className="field intensity">
-              <legend>Select Intensity</legend>
-              <div className="mode-grid" role="radiogroup" aria-label="Intensity">
-                {INTENSITIES.map(([num, title, description, icon]) => (
+              <legend>Select Theme</legend>
+              <div className="mode-grid" role="radiogroup" aria-label="Theme">
+                {INTENSITIES.map(([, title, description, icon]) => (
                   <button
                     key={title}
                     type="button"
@@ -410,13 +561,17 @@ export function FormScreen({
                     onClick={() => onSelectIntensity(title)}
                   >
                     <Icon name={icon} />
-                    <strong>{titleCase(title)}</strong>
+                    <strong>
+                      {titleCase(title)}
+                      {title === "AFTER DARK" ? " (18+)" : ""}
+                    </strong>
                     <small>{description}</small>
                   </button>
                 ))}
               </div>
             </fieldset>
 
+            {/* Players Capacity */}
             <fieldset className="field">
               <legend>Players</legend>
               <div className="size-grid" role="radiogroup" aria-label="Number of players">
@@ -444,19 +599,25 @@ export function FormScreen({
           </>
         )}
 
-        {error && (
+        {displayError && (
           <p className="form-error" role="alert">
-            {error}
+            {displayError}
           </p>
         )}
 
         <button
           className="primary full"
           type="submit"
-          disabled={disabled}
+          disabled={busy}
           aria-busy={busy ? "true" : undefined}
         >
-          {busy ? (join ? "Joining" : "Creating") : join ? "Join Room" : "Create My Room"}
+          {busy
+            ? join
+              ? "Joining"
+              : "Creating"
+            : join
+              ? "Join Room"
+              : "Create Online Room"}
           {!busy && <span aria-hidden="true">→</span>}
         </button>
       </form>
