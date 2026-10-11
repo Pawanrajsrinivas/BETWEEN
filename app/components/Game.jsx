@@ -218,7 +218,6 @@ export function Game({
                       {m.nickname}
                       {m.id === me.member_id ? " (you)" : ""}
                     </span>
-                    <span className="turn-chip-score">{memberScore}pt</span>
                     {current && <span className="turn-chip-tag">Now</span>}
                     {isNext && <span className="turn-chip-tag soft">Next</span>}
                   </li>

@@ -353,7 +353,10 @@ export function FormScreen({
     onSubmit();
   }
 
-  const sizes = Array.from({ length: CONFIG.maxCapacity }, (_, i) => i + 1);
+const sizes = Array.from(
+  { length: Math.max(0, CONFIG.maxCapacity - 1) },
+  (_, i) => i + 2
+);
   const displayError = error || validationError;
 
   return (
@@ -589,20 +592,12 @@ export function FormScreen({
                   </button>
                 ))}
               </div>
-              <p className="size-note" role="status">
+                     <p className="size-note" role="status">
                 <Icon name="users" />
-                {capacity === 1
-                  ? "Solo room: just you"
-                  : `${capacity} players: you plus up to ${capacity - 1} more`}
+                {capacity} players: you plus up to {capacity - 1} more
               </p>
             </fieldset>
           </>
-        )}
-
-        {displayError && (
-          <p className="form-error" role="alert">
-            {displayError}
-          </p>
         )}
 
         <button

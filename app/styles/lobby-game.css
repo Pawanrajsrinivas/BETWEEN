@@ -248,8 +248,10 @@
 
 .stage {
   position: relative;
+  
   min-width: 0;
   width: 100%;
+margin-inline: auto;
   max-width: 36rem;
   margin: 0 auto;
   display: flex;
@@ -1168,9 +1170,10 @@ button.primary.danger {
 /* game: turn order, host sheet */
 .turn-order {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   margin: 0;
-  padding: 4px 2px 6px;
+  padding: 4px 2px 10px;
   list-style: none;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1848,3 +1851,58 @@ button.primary.danger {
   }
 }
 
+/* BETWEEN: gameplay header and decorative artwork fixes */
+.game > .topbar {
+  position: relative;
+  z-index: 10;
+  isolation: isolate;
+}
+
+.game > .topbar .logo,
+.game > .topbar .room-tag,
+.game > .topbar .topbar-right {
+  min-width: 0;
+}
+
+.game > .topbar .logo {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.game > .topbar .topbar-right {
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+
+.game .stage-lips,
+.game .stage-chain {
+  pointer-events: none;
+}
+
+
+/* Fix: prevent decorative lips from crowding the game header on phones */
+
+/* Keep decorative lips subtle on narrow phones */
+@media (max-width: 479px) {
+  .game .stage-lips {
+    display: block !important;
+    width: 3.5rem;
+    top: 0;
+    left: 0;
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 479px) {
+  .game .stage-lips {
+    display: block;
+    position: absolute;
+    width: 3.5rem;
+    top: 0;
+    left: 0;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
