@@ -189,6 +189,153 @@ export function ArtDefs() {
         >
           <path d="M14 14l36 36M50 14L14 50" />
         </symbol>
+        <symbol
+          id="i-users"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="24" cy="22" r="9" />
+          <path d="M6 54c0-11 8-18 18-18s18 7 18 18" />
+          <circle cx="46" cy="24" r="7" />
+          <path d="M44 38c9 0 14 6 14 14" />
+        </symbol>
+        <symbol
+          id="i-userplus"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="26" cy="22" r="10" />
+          <path d="M6 54c0-11 9-18 20-18 5 0 9 1 12 3" />
+          <path d="M48 34v18M39 43h18" />
+        </symbol>
+        <symbol
+          id="i-userminus"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="26" cy="22" r="10" />
+          <path d="M6 54c0-11 9-18 20-18 5 0 9 1 12 3" />
+          <path d="M39 43h18" />
+        </symbol>
+        <symbol
+          id="i-wifi"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 24c15-14 37-14 52 0M15 34c10-9 24-9 34 0M24 44c5-4 11-4 16 0" />
+          <circle cx="32" cy="54" r="2" fill="currentColor" />
+        </symbol>
+        <symbol
+          id="i-wifioff"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 24c15-14 37-14 52 0M15 34c10-9 24-9 34 0M24 44c5-4 11-4 16 0" />
+          <circle cx="32" cy="54" r="2" fill="currentColor" />
+          <path d="M10 8l44 48" />
+        </symbol>
+        <symbol
+          id="i-lock"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="12" y="28" width="40" height="28" rx="6" />
+          <path d="M20 28v-8a12 12 0 0 1 24 0v8" />
+        </symbol>
+        <symbol
+          id="i-unlock"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="12" y="28" width="40" height="28" rx="6" />
+          <path d="M20 28v-8a12 12 0 0 1 23-4" />
+        </symbol>
+        <symbol
+          id="i-shield"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M32 6l20 8v16c0 14-9 24-20 28C21 54 12 44 12 30V14z" />
+          <path d="M23 31l7 7 12-14" />
+        </symbol>
+        <symbol
+          id="i-skip"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M10 14l24 18-24 18zM38 14l16 18-16 18" />
+        </symbol>
+        <symbol
+          id="i-link"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M26 38a10 10 0 0 0 14 0l10-10a10 10 0 0 0-14-14l-4 4" />
+          <path d="M38 26a10 10 0 0 0-14 0L14 36a10 10 0 0 0 14 14l4-4" />
+        </symbol>
+        <symbol
+          id="i-globe"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="32" cy="32" r="24" />
+          <path d="M8 32h48M32 8c-10 12-10 36 0 48M32 8c10 12 10 36 0 48" />
+        </symbol>
+        <symbol
+          id="i-crownline"
+          viewBox="0 0 64 64"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M8 46l-2-26 14 12 12-20 12 20 14-12-2 26zM10 54h44" />
+        </symbol>
       </defs>
     </svg>
   );
@@ -601,5 +748,49 @@ export function RoseAvatar({ className = "" }) {
     <span className={`rose-avatar ${className}`} aria-hidden="true">
       <Rose />
     </span>
+  );
+}
+
+/* Mode illustrations (create-room cards) ---------------------------------- */
+
+/* Online: a phone carrying a heart, with signal rising from it */
+export function OnlineArt({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+      <path d="M78 22c7 6 7 16 0 22M86 15c11 10 11 28 0 38" fill="none" stroke="#ec3a58" strokeWidth="3" strokeLinecap="round" opacity=".75" />
+      <path d="M94 8c15 14 15 40 0 54" fill="none" stroke="#ec3a58" strokeWidth="3" strokeLinecap="round" opacity=".4" />
+      <rect x="28" y="10" width="42" height="72" rx="9" fill="url(#gSnake)" stroke="#a30f29" strokeWidth="2.5" />
+      <rect x="33" y="19" width="32" height="50" rx="4" fill="#12080a" stroke="#3a1119" />
+      <path d="M49 57C38 49 34 43 34 38c0-4 3-7 7-7 3 0 6 2 8 5 2-3 5-5 8-5 4 0 7 3 7 7 0 5-4 11-15 19z" fill="url(#gRed)" transform="translate(0 -4)" />
+      <ellipse cx="42" cy="31" rx="4" ry="2.4" fill="url(#gGloss)" />
+      <circle cx="49" cy="14.5" r="1.4" fill="#5a2a31" />
+      <rect x="43" y="73" width="12" height="2.6" rx="1.3" fill="#5a2a31" />
+      <path d="M12 60h20a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-9l-6 5v-5h-5a6 6 0 0 1-6-6v-6a6 6 0 0 1 6-6z" fill="#1a0a0d" stroke="#d11a3c" strokeWidth="2" transform="translate(-4 -6)" />
+      <circle cx="10" cy="64" r="1.6" fill="#ec3a58" />
+      <circle cx="16" cy="64" r="1.6" fill="#ec3a58" />
+      <circle cx="22" cy="64" r="1.6" fill="#ec3a58" />
+    </svg>
+  );
+}
+
+/* Offline: two glasses meeting in a toast, a spark between them */
+export function OfflineArt({ className = "" }) {
+  const glass = (
+    <g>
+      <path d="M-13 -34h26c0 21-5 35-13 37-8-2-13-16-13-37z" fill="url(#gRed)" stroke="#e5233f" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M-13 -34h26" stroke="#ffb3bf" strokeWidth="2" opacity=".5" />
+      <path d="M-8 -26c1 9 3 15 6 19" stroke="#ffb3bf" strokeWidth="2" strokeLinecap="round" opacity=".45" fill="none" />
+      <path d="M0 3v24" stroke="#c98b95" strokeWidth="3" strokeLinecap="round" />
+      <path d="M-11 29h22" stroke="#c98b95" strokeWidth="3.5" strokeLinecap="round" />
+    </g>
+  );
+  return (
+    <svg className={className} viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+      <g transform="translate(42 50) rotate(-16)">{glass}</g>
+      <g transform="translate(78 50) rotate(16)">{glass}</g>
+      <path d="M60 14l2.6 7 7 2.6-7 2.6L60 33l-2.6-7-7-2.6 7-2.6z" fill="#e3b24d" />
+      <path d="M48 8v6M45 11h6M74 6v5M71.5 8.5h5" stroke="#ec3a58" strokeWidth="2" strokeLinecap="round" />
+      <path d="M30 84h60" stroke="#3a1119" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }

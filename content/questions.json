@@ -1,0 +1,227 @@
+{
+  "_readme": "Source of truth for BETWEEN's questions and dares. Shape: MODE -> INTENSITY -> KIND -> [ [category, solo_ok (1/0), text], ... ]. Run `npm run questions` to validate and regenerate supabase/seed_questions.sql, then run that file in the Supabase SQL editor (it only inserts rows that are missing). solo_ok = 1 means it also works when one person is playing alone, so it must not mention other players. ONLINE content must work over chat/voice/video; OFFLINE content must work face to face with no phone or internet. Every item must be optional, consensual and reasonably safe.",
+  "ONLINE": {
+    "PLAYFUL": {
+      "TRUTH": [
+        ["Icebreakers", 1, "What is a small thing that reliably makes your day better?"],
+        ["Funny", 1, "What is the silliest thing you have ever searched for online?"],
+        ["Icebreakers", 1, "Which song do you secretly know every word to?"],
+        ["Funny", 1, "What is the most embarrassing typo or autocorrect fail you have ever sent?"],
+        ["Icebreakers", 0, "What was your first impression of another player here? Keep it kind and honest."],
+        ["Funny", 0, "Which player here would you want as a partner on a chaotic road trip, and why?"],
+        ["Icebreakers", 0, "Ask another player any playful question, then answer it yourself too."],
+        ["Relationships", 0, "What is one thing you have noticed about another player that you genuinely like?"]
+      ],
+      "DARE": [
+        ["Funny", 1, "Tell the story of your week in exactly three chat messages."],
+        ["Challenges", 1, "Describe your surroundings like a nature-documentary narrator, in the chat."],
+        ["Funny", 1, "Pull the face of your favourite emoji for five seconds, then tell the chat which one it was."],
+        ["Challenges", 1, "Find three objects near you that share a colour and list them in the chat."],
+        ["Funny", 0, "Send a voice note introducing yourself in your best movie-trailer voice."],
+        ["Relationships", 0, "Give another player a playful compliment in the chat."],
+        ["Challenges", 0, "Show an object near you that has an interesting story, then tell that story."],
+        ["Funny", 0, "Send another player three emojis that capture your first impression of them and let them guess why."]
+      ]
+    },
+    "PERSONAL": {
+      "TRUTH": [
+        ["Personal", 1, "What is something you rarely tell people about yourself?"],
+        ["Personal", 1, "What is a fear you have mostly grown out of, and what changed?"],
+        ["Personal", 1, "What is something you are quietly proud of that hardly anyone knows about?"],
+        ["Personal", 1, "What is something you want more of in your life right now?"],
+        ["Relationships", 0, "What do you value most in a close friend or partner, and how did you learn it?"],
+        ["Personal", 0, "What is something you have not admitted to many people before? Share only what feels comfortable."],
+        ["Relationships", 0, "When did you last feel truly understood by someone, and what did they do?"],
+        ["Icebreakers", 0, "What is one question you wish people asked you more often? Answer it."]
+      ],
+      "DARE": [
+        ["Challenges", 1, "Write a short note to yourself one year from now and read it aloud."],
+        ["Challenges", 1, "Write down three things you are grateful for today and post them in the chat."],
+        ["Personal", 1, "Describe your perfect lazy Sunday in exactly five sentences."],
+        ["Challenges", 1, "Name five things you are good at, with no apologies and no buts."],
+        ["Personal", 0, "Send a voice note telling the others about a memory that made you smile this year."],
+        ["Relationships", 0, "Describe your first impression of another player in three words, then explain each word."],
+        ["Challenges", 0, "Share a photo of something that matters to you and explain why."],
+        ["Relationships", 0, "Tell another player one thing they did recently that you appreciated."]
+      ]
+    },
+    "FLIRTY": {
+      "TRUTH": [
+        ["Relationships", 1, "What is your ideal first date, from the invitation to the goodbye?"],
+        ["Relationships", 1, "What small gesture instantly makes you smile at someone?"],
+        ["Bold", 1, "What is the most charming thing anyone has ever said or done for you?"],
+        ["Personal", 1, "What is your best flirting skill, and what is your worst?"],
+        ["Relationships", 0, "What was the first thing you noticed about another player here?"],
+        ["Bold", 0, "Which compliment from another player would mean the most to you?"],
+        ["Relationships", 0, "Which player here would plan the best romantic surprise, and what would it be?"],
+        ["Funny", 0, "If you had to write a one-line dating-profile bio for another player, what would it say?"]
+      ],
+      "DARE": [
+        ["Bold", 1, "Write your most charming one-line introduction and post it in the chat."],
+        ["Funny", 1, "Show your smoothest expression on camera or in a mirror for five seconds, then rate it out of ten."],
+        ["Challenges", 1, "Describe your dream date outfit and where you would wear it, in three sentences."],
+        ["Challenges", 1, "Choose a song that sets the mood for a perfect evening and say why."],
+        ["Relationships", 0, "Send another player a voice note with a compliment you actually mean."],
+        ["Bold", 0, "Send another player your best pickup line and let them rate it out of ten."],
+        ["Bold", 0, "Hold eye contact with another player on camera for ten seconds. Either of you may stop at any time."],
+        ["Relationships", 0, "Ask another player a lighthearted flirty question. They may answer or pass."]
+      ]
+    },
+    "WILD": {
+      "TRUTH": [
+        ["Bold", 1, "What is the boldest thing you have ever done on impulse?"],
+        ["Bold", 1, "What is the most daring thing you would try if nobody could judge you?"],
+        ["Personal", 1, "What is a harmless rule you secretly love to bend?"],
+        ["Funny", 1, "What is the wildest story from your life that you can tell safely?"],
+        ["Bold", 0, "What did you think about another player at first that turned out to be completely wrong?"],
+        ["Bold", 0, "Which player here is most likely to start something wild, and what would it be?"],
+        ["Relationships", 0, "What is the most outrageous thing you have done to impress someone?"],
+        ["Bold", 0, "If you could swap lives with anyone for a day, who would it be, and which player here would be your partner in crime?"]
+      ],
+      "DARE": [
+        ["Challenges", 1, "Make up a dramatic life story for a random object near you and tell it in the chat."],
+        ["Funny", 1, "Speak only in rhymes for your next three chat messages."],
+        ["Bold", 1, "Say the most confident sentence you can think of out loud three times, getting louder each time."],
+        ["Challenges", 1, "Invent a new holiday, name it, and describe how it should be celebrated."],
+        ["Funny", 0, "Send a voice note of you singing any song badly on purpose."],
+        ["Bold", 0, "Tell the others about an embarrassing moment you are comfortable sharing."],
+        ["Challenges", 0, "Using only items within arm's reach, build the tallest tower you can in thirty seconds and show it on camera."],
+        ["Funny", 0, "Let another player pick a silly accent, then use it for your next three messages or voice notes."]
+      ]
+    },
+    "AFTER DARK": {
+      "TRUTH": [
+        ["Personal", 1, "What is something about intimacy and connection that you wish more people understood?"],
+        ["Relationships", 1, "What do you find most attractive about a person, beyond how they look?"],
+        ["Bold", 1, "What does your most romantic evening look like, with nothing held back?"],
+        ["Personal", 1, "What late-night thought do you rarely say out loud?"],
+        ["Relationships", 0, "What makes you feel most desired and appreciated?"],
+        ["Bold", 0, "What is the most attractive habit a person can have?"],
+        ["Relationships", 0, "What is a boundary you appreciate people respecting, and how do you like to be asked?"],
+        ["Bold", 0, "What does your ideal slow, flirty evening look like?"]
+      ],
+      "DARE": [
+        ["Challenges", 1, "Write a two-line romantic poem and read it aloud in your most dramatic voice."],
+        ["Bold", 1, "Pick the playlist for a slow, late-night evening and name your first three songs."],
+        ["Bold", 1, "Say a compliment to yourself in the mirror, and mean it."],
+        ["Challenges", 1, "Describe your favourite scent, fabric and song for a perfect night in, in the chat."],
+        ["Relationships", 0, "Send another player a voice note with the most charming compliment you can give, if they would like to hear one."],
+        ["Bold", 0, "Describe what you would wear to a late-night dinner and what you hope someone notices."],
+        ["Relationships", 0, "If you both agree, hold a slow gaze with another player on camera for fifteen seconds."],
+        ["Funny", 0, "Record a low, warm voice note describing your ideal midnight snack and what makes it perfect."]
+      ]
+    }
+  },
+  "OFFLINE": {
+    "PLAYFUL": {
+      "TRUTH": [
+        ["Icebreakers", 1, "What is your most unusual talent?"],
+        ["Funny", 1, "What is the funniest thing that has ever happened to you at a party or gathering?"],
+        ["Icebreakers", 1, "If you could have dinner with anyone, who would it be and why?"],
+        ["Funny", 1, "What is the weirdest food combination you secretly enjoy?"],
+        ["Icebreakers", 0, "What was your funniest first impression of someone here? Keep it kind."],
+        ["Funny", 0, "Who here would survive longest in a zombie movie, and what would they do?"],
+        ["Relationships", 0, "What is one thing you have learned from someone in this room?"],
+        ["Icebreakers", 0, "Let the group ask you one question. Answer it honestly, or pass."]
+      ],
+      "DARE": [
+        ["Funny", 1, "Describe the room for thirty seconds like a nature-documentary narrator."],
+        ["Challenges", 1, "Balance a book on your head and walk across the room without dropping it."],
+        ["Funny", 1, "Perform a dramatic reading of any random sentence you can find nearby, as if it were the last line of a movie."],
+        ["Challenges", 1, "Tell a thirty-second story about an object you are holding."],
+        ["Funny", 0, "Act out a movie scene without speaking and let the group guess it."],
+        ["Relationships", 0, "Describe another player using three positive words."],
+        ["Challenges", 0, "Maintain eye contact with another player for ten seconds without laughing. Either of you may stop at any time."],
+        ["Challenges", 0, "Create a short group pose and let someone give it a name."]
+      ]
+    },
+    "PERSONAL": {
+      "TRUTH": [
+        ["Personal", 1, "What is a belief you hold that has changed over the years?"],
+        ["Personal", 1, "What is a risk you took that you are glad you took?"],
+        ["Personal", 1, "What always makes you feel at home?"],
+        ["Personal", 1, "What are you most looking forward to right now?"],
+        ["Relationships", 0, "What is one quality you admire in someone sitting here?"],
+        ["Relationships", 0, "Who here last made you laugh until you cried, and what happened?"],
+        ["Personal", 0, "Tell the group about an embarrassing moment you are comfortable sharing."],
+        ["Icebreakers", 0, "What is one thing you wish the others knew about you?"]
+      ],
+      "DARE": [
+        ["Challenges", 1, "Stand tall and say three things you like about yourself, out loud."],
+        ["Personal", 1, "Tell the story behind something you are wearing or carrying."],
+        ["Challenges", 1, "Describe your happiest childhood memory using all five senses."],
+        ["Personal", 1, "Say aloud the advice you would give your younger self."],
+        ["Relationships", 0, "Tell another player one thing you appreciate about them, looking at them as you speak."],
+        ["Relationships", 0, "Share a happy memory that involves someone in this room."],
+        ["Challenges", 0, "Teach the group something small you know how to do, in under a minute."],
+        ["Personal", 0, "Let the group guess three things about you, then tell them which are right."]
+      ]
+    },
+    "FLIRTY": {
+      "TRUTH": [
+        ["Relationships", 1, "What is your idea of a perfect first date?"],
+        ["Bold", 1, "What is the most charming thing anyone has ever done for you?"],
+        ["Personal", 1, "What is your best flirting move, and what is your worst?"],
+        ["Relationships", 1, "What small gesture makes you melt?"],
+        ["Relationships", 0, "What was the first thing you noticed about someone in this room?"],
+        ["Bold", 0, "Which compliment from someone here would mean the most to you?"],
+        ["Funny", 0, "Who here would write the best love letter, and what would its first line be?"],
+        ["Bold", 0, "What is the most romantic thing you would do for someone you adored?"]
+      ],
+      "DARE": [
+        ["Bold", 1, "Strike your most confident pose and hold it for ten seconds."],
+        ["Funny", 1, "Introduce yourself in one smooth line, as if you had just walked into a glamorous party."],
+        ["Challenges", 1, "Walk across the room like a runway model and take a bow."],
+        ["Funny", 1, "Recite a made-up romantic poem about a snack on the table."],
+        ["Relationships", 0, "Give another player a compliment you actually mean."],
+        ["Bold", 0, "Share your best pickup line and let the group rate it."],
+        ["Bold", 0, "Ask another player if they would like a compliment. If they say yes, give them your best one."],
+        ["Relationships", 0, "If they are comfortable with it, whisper a kind compliment to another player."]
+      ]
+    },
+    "WILD": {
+      "TRUTH": [
+        ["Bold", 1, "What is the most spontaneous trip or decision you have ever made?"],
+        ["Bold", 1, "What is the strangest dream you can remember?"],
+        ["Funny", 1, "What is the most ridiculous lie you ever told, and did it work?"],
+        ["Personal", 1, "What is a harmless rule you secretly love to bend?"],
+        ["Bold", 0, "Who here would start a spontaneous adventure first, and where would they take everyone?"],
+        ["Funny", 0, "Who here is most likely to laugh at the worst possible moment, and what is the funniest example you remember?"],
+        ["Bold", 0, "What is a safe-but-scary challenge you would take if the group dared you?"],
+        ["Relationships", 0, "What is the most outrageous thing you have done to impress someone?"]
+      ],
+      "DARE": [
+        ["Funny", 1, "Speak in an exaggerated accent for the next two minutes."],
+        ["Challenges", 1, "Invent a handshake with yourself and demonstrate it with total confidence."],
+        ["Bold", 1, "Sing a made-up song about your day, as dramatically as you can."],
+        ["Challenges", 1, "Do ten star jumps while announcing something you are proud of, only if that is comfortable for you."],
+        ["Funny", 0, "Perform a dramatic reading of a random sentence to the group, as if accepting an award."],
+        ["Bold", 0, "Let the group give you a harmless nickname that you answer to for the next ten minutes."],
+        ["Challenges", 0, "Act out a famous scene with another player who agrees to join you while the group guesses it."],
+        ["Funny", 0, "Tell the group a story about an embarrassing moment you are comfortable sharing."]
+      ]
+    },
+    "AFTER DARK": {
+      "TRUTH": [
+        ["Personal", 1, "What is your idea of a perfect night in, from start to finish?"],
+        ["Relationships", 1, "What is the most attractive quality a person can have, apart from looks?"],
+        ["Personal", 1, "What do you find quietly romantic that other people might overlook?"],
+        ["Bold", 1, "What is a wish for your love life that you have not told many people?"],
+        ["Relationships", 0, "What is the best compliment you have ever received about how you carry yourself?"],
+        ["Bold", 0, "What is the most romantic setting you can imagine, and who here would enjoy it least?"],
+        ["Relationships", 0, "How do you like to be told you are wanted, and how do you tell others?"],
+        ["Bold", 0, "What is the boldest flirt you have ever seen succeed?"]
+      ],
+      "DARE": [
+        ["Bold", 1, "Say a confident, flirty line to the room, or to yourself in a mirror, and mean it."],
+        ["Challenges", 1, "Describe a slow dance you would love, from the song to the setting, in vivid detail."],
+        ["Funny", 1, "Deliver your most seductive villain monologue about dessert."],
+        ["Challenges", 1, "Pose like a classic film star for ten seconds and hold it."],
+        ["Relationships", 0, "If you both agree, hold another player's gaze for fifteen seconds, then say what you noticed."],
+        ["Bold", 0, "Give another player a slow, sincere compliment you would not normally say out loud, only if they would like one."],
+        ["Relationships", 0, "Ask another player to share a dance or a slow sway, only if they say yes."],
+        ["Bold", 0, "Describe the most irresistible entrance anyone could make into this room, then act it out."]
+      ]
+    }
+  }
+}

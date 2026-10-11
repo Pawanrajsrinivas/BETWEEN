@@ -2,7 +2,7 @@
   "name": "between",
   "version": "0.1.0",
   "private": true,
-  "scripts": {"dev": "next dev", "build": "next build", "start": "next start", "lint": "next lint"},
+  "scripts": {"dev": "next dev", "build": "next build", "start": "next start", "lint": "next lint", "questions": "node scripts/build-questions-sql.mjs"},
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
     "next": "^15.5.0",

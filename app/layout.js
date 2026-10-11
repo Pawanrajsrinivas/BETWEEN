@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "BETWEEN — A game for two",
-  description: "A private truth or dare experience for two people."
+  title: "BETWEEN — Truth or dare for your people",
+  description: "A private truth or dare game for one to eight people."
 };
 
 // Lets the page draw under phone browser bars (safe-area padding handles the
